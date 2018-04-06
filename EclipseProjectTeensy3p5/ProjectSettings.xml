@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cdtprojectproperties>
+<section name="org.eclipse.cdt.internal.ui.wizards.settingswizards.IncludePaths">
+<language name="Assembly Source File">
+
+</language>
+<language name="C Source File">
+<includepath>C:\Program Files (x86)\Arduino\hardware\tools\arm\arm-none-eabi\include</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Source</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/teensy3</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/Audio</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/Bounce2</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/EEPROM</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/FastLED</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/SD</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/Snooze</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/SPI</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/Wire</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/Adafruit_BluefruitLE_nRF51-master</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/SparkFun_LSM6DS3_Arduino_Library-master</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/minIni-master/dev</includepath>
+
+</language>
+<language name="C++ Source File">
+<includepath>C:\Program Files (x86)\Arduino\hardware\tools\arm\arm-none-eabi\include</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Source</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/teensy3</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/Audio</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/Bounce2</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/EEPROM</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/FastLED</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/SD</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/Snooze</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/SPI</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/Wire</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/Adafruit_BluefruitLE_nRF51-master</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/SparkFun_LSM6DS3_Arduino_Library-master</includepath>
+<includepath workspace_path="true">/LiteFXOSTeensy3p5/Libraries/minIni-master/dev</includepath>
+
+</language>
+<language name="Object File">
+
+</language>
+</section>
+</cdtprojectproperties>
