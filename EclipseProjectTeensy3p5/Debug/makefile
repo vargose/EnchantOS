@@ -8,8 +8,8 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include Source/LiteFXOS/Examples/subdir.mk
 -include Source/LiteFXOS/subdir.mk
--include Source/Examples/LawGiver/subdir.mk
 -include Source/subdir.mk
 -include Libraries/teensy3/subdir.mk
 -include Libraries/minIni-master/dev/subdir.mk

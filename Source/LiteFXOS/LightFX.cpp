@@ -179,6 +179,25 @@ void ColorFader()
 
 /******************************************************************************/
 /*!
+ * @name  LightFX ColorFader one color
+ * @brief
+ */
+/******************************************************************************/
+#define COLOR_FADER_STRIP_BOUNDARY 	Special1
+void ColorFaderStrip()
+{
+	for (uint16_t n = 0; n < NumLEDs; n++)
+	{
+		p_LEDStrip[n].r = ((p_LEDStripBuffer[n].r * (Steps - *p_IndexPos)) + (Color1.r * *p_IndexPos)) / Steps;
+		p_LEDStrip[n].g = ((p_LEDStripBuffer[n].g * (Steps - *p_IndexPos)) + (Color1.g * *p_IndexPos)) / Steps;
+		p_LEDStrip[n].b = ((p_LEDStripBuffer[n].b * (Steps - *p_IndexPos)) + (Color1.b * *p_IndexPos)) / Steps;
+	}
+
+	HelperIndexStep(p_IndexPos, p_Direction, 1, 0, COLOR_FADER_STRIP_BOUNDARY, BoundaryBehavior);
+}
+
+/******************************************************************************/
+/*!
  * @name ColorWipe
  * @brief Wipes color to index position
  */
@@ -369,12 +388,12 @@ void LightFX_InitFX(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_
   Set a FX - using a particular function with only the relevant vars
   avoids confusion for the user
  *----------------------------------------------------------------------------*/
-void LightFX_SetFXColorFader(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t patternStart, bool direction, uint16_t transitionSteps, bool boundaryBehavior, CRGB color1, CRGB color2)
+void LightFX_SetFXColorFader(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t patternIndex, bool direction, uint16_t transitionSteps, bool boundaryBehavior, CRGB color1, CRGB color2)
 {
 	fx->Pattern = ColorFader;
 	fx->p_LEDStrip = &ledStrip[ledStart];
 	fx->NumLEDs = ledLength;
-	fx->IndexPos = patternStart;
+	fx->IndexPos = patternIndex;
 	fx->Direction = direction;
 	fx->Steps = transitionSteps;
 	fx->BoundaryBehavior = boundaryBehavior;
@@ -382,12 +401,26 @@ void LightFX_SetFXColorFader(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart
 	fx->Color2 = color2;
 }
 
-void LightFX_SetFXColorWipe(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t patternStart, bool direction, bool boundaryBehavior, CRGB color1, CRGB color2)
+void LightFX_SetFXColorFaderStrip(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t patternIndex, bool direction, uint16_t boundarySteps, uint16_t totalTransitionSteps, bool boundaryBehavior, CRGB * ledStripInitialColor, CRGB color)
+{
+	fx->Pattern = ColorFaderStrip;
+	fx->p_LEDStrip = &ledStrip[ledStart];
+	fx->NumLEDs = ledLength;
+	fx->IndexPos = patternIndex;
+	fx->Direction = direction;
+	fx->Steps = totalTransitionSteps;
+	fx->BoundaryBehavior = boundaryBehavior;
+	fx->p_LEDStripBuffer = ledStripInitialColor;
+	fx->Color1 = color;
+	fx->COLOR_FADER_STRIP_BOUNDARY = boundarySteps;
+}
+
+void LightFX_SetFXColorWipe(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t patternIndex, bool direction, bool boundaryBehavior, CRGB color1, CRGB color2)
 {
 	fx->Pattern = ColorWipe;
 	fx->p_LEDStrip = &ledStrip[ledStart];
 	fx->NumLEDs = ledLength;
-	fx->IndexPos = patternStart;
+	fx->IndexPos = patternIndex;
 	fx->Direction = direction;
 	fx->BoundaryBehavior = boundaryBehavior;
 	fx->Color1 = color1;

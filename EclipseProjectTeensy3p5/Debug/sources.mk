@@ -50,7 +50,7 @@ Libraries/Wire \
 Libraries/Wire/utility \
 Libraries/minIni-master/dev \
 Libraries/teensy3 \
-Source/Examples/LawGiver \
+Source/LiteFXOS/Examples \
 Source/LiteFXOS \
 Source \
 
