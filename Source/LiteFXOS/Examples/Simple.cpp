@@ -23,7 +23,7 @@ CRGBPalette16 Palette = RainbowColors_p;
 
 void AnimationRight()
 {
-	LightFX_ProcPaletteWipe(LEDStrip, 0, 5, 120, &Palette, 255*2/3);
+	LightFX_ProcPaletteWipe(LEDStrip, 5, 5, 120, &Palette, 255/2/3);
 }
 
 void setup() {
@@ -39,7 +39,7 @@ void setup() {
 
 	//Left Side
 		//choose animation
-		LightFX_SetFXColorWipe(&AnimationLeft, LEDStrip, 5, 5, 0, 1, 1, CRGB::Red, CRGB::Black);
+		LightFX_SetFXColorWipe(&AnimationLeft, LEDStrip, 0, 5, 0, 1, 1, CRGB::Red, CRGB::Black);
 		//choose timing
 		LiteFXOS_SetThreadCycleArgFreq(&AnimationLeftThread, AnimationLeft.Pattern, 10);
 		//provide thread with LightFX data

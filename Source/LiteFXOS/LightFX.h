@@ -59,12 +59,9 @@ void LightFX_LoadMemory(void * fx);
 void LightFX_MapFX(LIGHT_FX_T * fx);
 void LightFX_ProcFX(LIGHT_FX_T * fx);
 
-
-void LightFX_SetFXColorFader(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t patternIndex, bool direction, uint16_t transitionSteps, bool boundaryBehavior, CRGB color1, CRGB color2);
-void LightFX_SetFXColorWipe(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t patternIndex, bool direction, bool boundaryBehavior, CRGB color1, CRGB color2);
+void LightFX_SetFXColorFader(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t patternStart, bool direction, uint16_t transitionSteps, bool boundaryBehavior, CRGB color1, CRGB color2);
+void LightFX_SetFXColorWipe(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t patternStart, bool direction, bool boundaryBehavior, CRGB color1, CRGB color2);
 void LightFX_SetFXBlink(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, bool direction, CRGB color1, CRGB color2);
 void LightFX_SetFXPaletteWipe(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint16_t cycleSteps, CRGBPalette16 * palette, uint8_t visibleSpectrum);
-
-void LightFX_SetFXColorFaderStrip(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t patternIndex, bool direction, uint16_t boundarySteps, uint16_t totalTransitionSteps, bool boundaryBehavior, CRGB * ledStripInitialColor, CRGB color);
 
 #endif /* SOURCE_LITEFXOS_LIGHTFX_H_ */
