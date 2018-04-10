@@ -497,7 +497,7 @@ void setup()
 	ButtonTrigger		= Bounce(19, 10);  // 10 ms debounce
 	ButtonMagazine		= Bounce(20, 10);  // 10 ms debounce
 
-	LightFX_SetFXPaletteWipe(&RainbowFX, 			LawGiver, 0, NUM_LEDS, 120, &Palette, 255/2/3);
+	LightFX_SetFXPaletteWipe(&RainbowFX, 			LawGiver, 0, NUM_LEDS, 120, &Palette, 255*2/3);
 	LightFX_SetFXBlink(&RedTriangleBlinkFX, 		LawGiver, RED_TRIANGLE_START, RED_TRIANGLE_LENGTH, 1, CRGB::Red, CRGB::Black);
 	LightFX_SetFXColorWipe(&AmmunitionRampUpFX, 	LawGiver, AMMUNITION_START, AMMUNITION_LENGTH, 0, 1, false, CRGB::Red, CRGB::Black);
 	LightFX_SetFXColorWipe(&AmmunitionDownFX, 		LawGiver, AMMUNITION_START, AMMUNITION_LENGTH, 6, 0, false, CRGB::Red, CRGB::Black);
