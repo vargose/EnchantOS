@@ -18,9 +18,6 @@ CRGB LEDStripFullBrightness[NUM_LEDS];
 LIGHT_FX_T 			Animation;
 LITE_FX_OS_THREAD_T Thread;
 
-
-
-
 void StartFlicker()
 {
 	//set y,r,r pattern
@@ -64,19 +61,9 @@ void loop()
 	bool updateLEDs;
 
 	LiteFXOS_SetTimerCounter(millis());
-	//Process left side Using LiteFXOS
+
 	if (LiteFXOS_ProcThread(&Thread)) updateLEDs = 1;
-
 	if (updateLEDs) FastLED.show();
-
-	if (Serial.available())
-	{
-		char ch = Serial.read();
-		if (ch == 'e')
-		{
-			Serial.println("echo");
-		}
-	}
 }
 
 extern "C"{
