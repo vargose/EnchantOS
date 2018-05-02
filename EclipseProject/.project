@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<projectDescription>
+	<name>EnchantOS</name>
+	<comment></comment>
+	<projects>
+	</projects>
+	<buildSpec>
+		<buildCommand>
+			<name>org.eclipse.cdt.managedbuilder.core.genmakebuilder</name>
+			<triggers>clean,full,incremental,</triggers>
+			<arguments>
+			</arguments>
+		</buildCommand>
+		<buildCommand>
+			<name>org.eclipse.cdt.managedbuilder.core.ScannerConfigBuilder</name>
+			<triggers>full,incremental,</triggers>
+			<arguments>
+			</arguments>
+		</buildCommand>
+	</buildSpec>
+	<natures>
+		<nature>org.eclipse.cdt.core.cnature</nature>
+		<nature>org.eclipse.cdt.core.ccnature</nature>
+		<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>
+		<nature>org.eclipse.cdt.managedbuilder.core.ScannerConfigNature</nature>
+	</natures>
+	<linkedResources>
+		<link>
+			<name>Libraries</name>
+			<type>2</type>
+			<locationURI>ProjectRoot/Libraries</locationURI>
+		</link>
+		<link>
+			<name>Source</name>
+			<type>2</type>
+			<locationURI>ProjectRoot/Source</locationURI>
+		</link>
+		<link>
+			<name>Libraries/Audio</name>
+			<type>2</type>
+			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/Audio</location>
+		</link>
+		<link>
+			<name>Libraries/Bounce2</name>
+			<type>2</type>
+			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/Bounce2</location>
+		</link>
+		<link>
+			<name>Libraries/EEPROM</name>
+			<type>2</type>
+			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/EEPROM</location>
+		</link>
+		<link>
+			<name>Libraries/FastLED</name>
+			<type>2</type>
+			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/FastLED</location>
+		</link>
+		<link>
+			<name>Libraries/NXPMotionSense</name>
+			<type>2</type>
+			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/NXPMotionSense</location>
+		</link>
+		<link>
+			<name>Libraries/SD</name>
+			<type>2</type>
+			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/SD</location>
+		</link>
+		<link>
+			<name>Libraries/SPI</name>
+			<type>2</type>
+			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/SPI</location>
+		</link>
+		<link>
+			<name>Libraries/SerialFlash</name>
+			<type>2</type>
+			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/SerialFlash</location>
+		</link>
+		<link>
+			<name>Libraries/Snooze</name>
+			<type>2</type>
+			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/Snooze</location>
+		</link>
+		<link>
+			<name>Libraries/Wire</name>
+			<type>2</type>
+			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/Wire</location>
+		</link>
+		<link>
+			<name>Libraries/teensy3</name>
+			<type>2</type>
+			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/cores/teensy3</location>
+		</link>
+	</linkedResources>
+	<variableList>
+		<variable>
+			<name>ProjectRoot</name>
+			<value>$%7BPARENT-1-PROJECT_LOC%7D</value>
+		</variable>
+	</variableList>
+</projectDescription>

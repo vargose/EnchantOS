@@ -1,6 +1,6 @@
 /**************************************************************************/
 /*!
-    @file     Menu.h
+    @file     Menu.cpp
     @author   The Firebrand Forge
 
     @section LICENSE
@@ -19,31 +19,52 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+	@brief A Menu is a State and a Mode.
+			Used for navigating between function mappings to buttons/events.
 */
 /**************************************************************************/
-#ifndef MENU_H
-#define MENU_H
+#include "Menu.h"
 
-#include <stdint.h>
-#include <stdbool.h>
+MENU_T	*	MenuSelect;
 
-#define MENU_FUNCTIONS_COUNT 10
-
-typedef const struct Menu
+MENU_T * Menu_GetMenu()
 {
-	const struct Menu *	NextMenu;
-	const struct Menu *	PrevMenu;
-	void 				(* InitFunction)(void);
-	//Can include other menu data here later;
-	void 				(* FunctionMap[MENU_FUNCTIONS_COUNT])(void);
-	//void 				(** FunctionMap)(void);
-} MENU_T;
+	return MenuSelect;
+}
 
-extern MENU_T * Menu_GetMenu(void);
-extern void Menu_SetMenu(MENU_T * target);
-extern void Menu_StartMenu(MENU_T * target);
-extern void Menu_SetNextMenu(void);
-extern void Menu_StartNextMenu(void);
-extern void Menu_DoFunction(uint8_t num);
+void Menu_SetMenu(MENU_T * target)
+{
+	MenuSelect = target;
+}
 
-#endif
+void Menu_SetNextMenu()
+{
+	if(MenuSelect->NextMenu) MenuSelect = MenuSelect->NextMenu;
+}
+
+void Menu_StartMenu(MENU_T * target)
+{
+	MenuSelect = target;
+	if(MenuSelect->InitFunction) MenuSelect->InitFunction();
+}
+
+
+void Menu_StartNextMenu()
+{
+	if(MenuSelect->NextMenu)
+	{
+		MenuSelect = MenuSelect->NextMenu;
+		if(MenuSelect->InitFunction)	MenuSelect->InitFunction();
+	}
+}
+
+void Menu_DoFunction(uint8_t num)
+{
+	if (MenuSelect->FunctionMap[num]) MenuSelect->FunctionMap[num]();
+}
+
+void Menu_DoMenuFunction(MENU_T * target, uint8_t num)
+{
+	if (target->FunctionMap[num]) target->FunctionMap[num]();
+}

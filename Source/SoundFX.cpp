@@ -39,10 +39,10 @@
  *----------------------------------------------------------------------------*/
 typedef enum
 {
-		SOUND_FX_OUT_INPUT1_L = 0,
-		SOUND_FX_OUT_INPUT1_R = 1,
-		SOUND_FX_OUT_INPUT2_L = 2,
-		SOUND_FX_OUT_INPUT2_R = 3,
+		WAV1_INPUT_L = 0,
+		WAV1_INPUT_R = 1,
+		WAV2_INPUT_L = 2,
+		WAV2_INPUT_R = 3,
 } SOUND_FX_OUT_CHANNEL_T;
 
 //AudioSynthWaveform	Waveform1;
@@ -51,16 +51,16 @@ AudioPlaySdWav		PlayWav1;
 AudioPlaySdWav		PlayWav2;
 
 AudioMixer4			SoundFXOut;
-AudioConnection		patchCord1(PlayWav1, 0, SoundFXOut, SOUND_FX_OUT_INPUT1_L);
-AudioConnection		patchCord2(PlayWav1, 1, SoundFXOut, SOUND_FX_OUT_INPUT1_R);
-AudioConnection		patchCord3(PlayWav2, 0, SoundFXOut, SOUND_FX_OUT_INPUT2_L);
-AudioConnection		patchCord4(PlayWav2, 1, SoundFXOut, SOUND_FX_OUT_INPUT2_R);
+AudioConnection		patchCord1(PlayWav1, 0, SoundFXOut, WAV1_INPUT_L);
+AudioConnection		patchCord2(PlayWav1, 1, SoundFXOut, WAV1_INPUT_R);
+AudioConnection		patchCord3(PlayWav2, 0, SoundFXOut, WAV2_INPUT_L);
+AudioConnection		patchCord4(PlayWav2, 1, SoundFXOut, WAV2_INPUT_R);
 
 #ifdef __MK64FX512__
 	AudioOutputAnalogStereo		DAC;
 	AudioConnection				patchCord5(SoundFXOut, 0, DAC, 1);
 #endif
-#ifdef __MK20DK265__
+#ifdef __MK20DX256__
 	AudioOutputAnalog			DAC;
 	AudioConnection				patchCord5(SoundFXOut, 0, DAC, 0);
 #endif
@@ -78,15 +78,24 @@ AudioConnection		c4(PlayWav2,1,RMS_R,0);
 static uint8_t Peak;
 static uint8_t RMS;
 
+static uint8_t AmpPin;
+
+bool Wav2IsPlaying = 0;
+bool Wav2Changed = 0;
+
 /*-----------------------------------------------------------------------------
 
  *----------------------------------------------------------------------------*/
 static uint32_t Volume = 100;
 
-void SoundFX_Init(void)
+static inline void AmpOn(){digitalWrite(AmpPin, HIGH);}
+static inline void AmpOff(){digitalWrite(AmpPin, LOW);}
+
+void SoundFX_Init(uint8_t pin)
 {
-	pinMode(2, OUTPUT);
-	digitalWrite(2, HIGH); // turn on the amplifier
+	AmpPin = pin;
+	pinMode(pin, OUTPUT);
+	digitalWrite(pin, HIGH); // turn on the amplifier
 
 	delay(10);             // allow time to wake up
 
@@ -96,35 +105,43 @@ void SoundFX_Init(void)
 
 	delay(50);             // time for DAC voltage stable
 
-	SoundFXOut.gain(SOUND_FX_OUT_INPUT1_L, 0.5);
-	SoundFXOut.gain(SOUND_FX_OUT_INPUT1_R, 0.5);
-	SoundFXOut.gain(SOUND_FX_OUT_INPUT2_L, 0);
-	SoundFXOut.gain(SOUND_FX_OUT_INPUT2_R, 0);
+	SoundFXOut.gain(WAV1_INPUT_L, 0.5);
+	SoundFXOut.gain(WAV1_INPUT_R, 0.5);
+	SoundFXOut.gain(WAV2_INPUT_L, 0);
+	SoundFXOut.gain(WAV2_INPUT_R, 0);
 }
 
 // A SoundFX is a group of sound files binded to one action/event
+// Playing the SoundFX will cycle through the files when the action/event occurs
 // Sound files from different directories may be added to the same FX group
 // Must provide module with a buffer for file names
-// sets buffer and boundaries to check against
+// Sets buffer and boundaries to check against
 void SoundFX_InitFX(SOUND_FX_T * soundFX, char ** filenamesBuffer, uint8_t filenameLenMax, uint8_t fileCountMax)
 {
 	soundFX->Filenames = filenamesBuffer;
 	soundFX->FilenameLenMax = filenameLenMax;
 	soundFX->FileCountMax = fileCountMax;
 	soundFX->WavCount = 0;
+
+	memset(filenamesBuffer, 0, filenameLenMax*fileCountMax); //need?
 }
 
 void SoundFX_AddFile(SOUND_FX_T * soundFX, const char * fileName)
 {
 	if(!SD.exists(fileName)) return;
 
-	if (strlen(fileName) + 1 < soundFX->FilenameLenMax) return;
+	if (strlen(fileName) + 1 > soundFX->FilenameLenMax) return;
 
 	if (soundFX->WavCount < soundFX->FileCountMax)
 	{
 		snprintf(((char*)soundFX->Filenames + soundFX->WavCount * soundFX->FilenameLenMax), soundFX->FilenameLenMax, "%s", fileName);
 		soundFX->WavCount++;
 	}
+}
+
+void SoundFX_AddFilesWithPrefix(SOUND_FX_T * soundFX, const char * dirName, const char * filePrefix)
+{
+
 }
 
 static uint8_t FindWavFilesInDirectory(char ** filenamesBuffer, uint8_t filenameLenMax, uint8_t fileCountMax, const char * dirName)
@@ -138,7 +155,7 @@ static uint8_t FindWavFilesInDirectory(char ** filenamesBuffer, uint8_t filename
     	Dir = SD.open(dirName);
 	else
 	{
-		SD.mkdir(dirName);
+		//SD.mkdir(dirName);
 		return 0;
 	}
 
@@ -173,12 +190,20 @@ void SoundFX_InitFXWithDirectory(SOUND_FX_T * soundFX, char ** filenamesBuffer, 
 	SoundFX_AddDirectory(soundFX, dirName);
 }
 
+void SoundFX_Reload(void)
+{
+
+}
+
+
+
+
 void SoundFX_Reset(void)
 {
-	SoundFXOut.gain(SOUND_FX_OUT_INPUT1_L, 0.5);
-	SoundFXOut.gain(SOUND_FX_OUT_INPUT1_R, 0.5);
-	SoundFXOut.gain(SOUND_FX_OUT_INPUT2_L, 0);
-	SoundFXOut.gain(SOUND_FX_OUT_INPUT2_R, 0);
+//	SoundFXOut.gain(SOUND_FX_OUT_INPUT1_L, 0.5);
+//	SoundFXOut.gain(SOUND_FX_OUT_INPUT1_R, 0.5);
+//	SoundFXOut.gain(SOUND_FX_OUT_INPUT2_L, 0);
+//	SoundFXOut.gain(SOUND_FX_OUT_INPUT2_R, 0);
 }
 
 void SoundFX_VolumeUp(void)
@@ -191,9 +216,26 @@ void SoundFX_VolumeDown(void)
 
 }
 
+void SoundFX_SetVolume(float volume)
+{
+//	SoundFXOut.gain(SOUND_FX_OUT_INPUT1_L, volume);
+//	SoundFXOut.gain(SOUND_FX_OUT_INPUT1_R, volume);
+//	SoundFXOut.gain(SOUND_FX_OUT_INPUT2_L, volume);
+//	SoundFXOut.gain(SOUND_FX_OUT_INPUT2_R, volume);
+}
+
+
 void SoundFX_Pause(void)
 {
 
+}
+
+bool SoundFX_IsPlaying(void)
+{
+	if (PlayWav1.isPlaying() || PlayWav2.isPlaying())
+		return true;
+	else
+		return false;
 }
 
 void SoundFX_Stop(void)
@@ -202,23 +244,35 @@ void SoundFX_Stop(void)
 	PlayWav2.stop();
 }
 
+void SoundFX_PollAmpDisable(void)
+{
+	if (!PlayWav1.isPlaying() && !PlayWav2.isPlaying())
+		AmpOff();
+}
+
 void SoundFX_PlayFile(const char * filename)
 {
-	if (*filename == 0) return;
+	if (filename == 0) return;
 
+	//Serial.println(filename);
+
+	SoundFXOut.gain(WAV1_INPUT_L, 0.5);
+	SoundFXOut.gain(WAV1_INPUT_R, 0.5);
+	SoundFXOut.gain(WAV2_INPUT_L, 0);
+	SoundFXOut.gain(WAV2_INPUT_R, 0);
 	PlayWav1.play(filename);
 }
 
 void SoundFX_PlayFileLayered(const char * filename, bool backgroundForeground)
 {
-	if (*filename == 0) return;
+	if (filename == 0) return;
 
 	if(PlayWav1.isPlaying() || PlayWav2.isPlaying())
 	{
-		SoundFXOut.gain(SOUND_FX_OUT_INPUT1_L, 0.1);
-		SoundFXOut.gain(SOUND_FX_OUT_INPUT1_R, 0.1);
-		SoundFXOut.gain(SOUND_FX_OUT_INPUT2_L, 0.4);
-		SoundFXOut.gain(SOUND_FX_OUT_INPUT2_R, 0.4);
+		SoundFXOut.gain(WAV1_INPUT_L, 0.1);
+		SoundFXOut.gain(WAV1_INPUT_R, 0.1);
+		SoundFXOut.gain(WAV2_INPUT_L, 0.4);
+		SoundFXOut.gain(WAV2_INPUT_R, 0.4);
 
 		if(backgroundForeground)
 			PlayWav2.play(filename);
@@ -229,18 +283,18 @@ void SoundFX_PlayFileLayered(const char * filename, bool backgroundForeground)
 	{
 		if(backgroundForeground)
 		{
-			SoundFXOut.gain(SOUND_FX_OUT_INPUT1_L, 0);
-			SoundFXOut.gain(SOUND_FX_OUT_INPUT1_R, 0);
-			SoundFXOut.gain(SOUND_FX_OUT_INPUT2_L, 0.5);
-			SoundFXOut.gain(SOUND_FX_OUT_INPUT2_R, 0.5);
+			SoundFXOut.gain(WAV1_INPUT_L, 0);
+			SoundFXOut.gain(WAV1_INPUT_R, 0);
+			SoundFXOut.gain(WAV2_INPUT_L, 0.5);
+			SoundFXOut.gain(WAV2_INPUT_R, 0.5);
 			PlayWav2.play(filename);
 		}
 		else
 		{
-			SoundFXOut.gain(SOUND_FX_OUT_INPUT1_L, 0.5);
-			SoundFXOut.gain(SOUND_FX_OUT_INPUT1_R, 0.5);
-			SoundFXOut.gain(SOUND_FX_OUT_INPUT2_L, 0);
-			SoundFXOut.gain(SOUND_FX_OUT_INPUT2_R, 0);
+			SoundFXOut.gain(WAV1_INPUT_L, 0.5);
+			SoundFXOut.gain(WAV1_INPUT_R, 0.5);
+			SoundFXOut.gain(WAV2_INPUT_L, 0);
+			SoundFXOut.gain(WAV2_INPUT_R, 0);
 			PlayWav1.play(filename);
 		}
 	}
@@ -256,6 +310,22 @@ void SoundFX_PlayFX(SOUND_FX_T * soundFX)
 		soundFX->WavIndex = 0;
 }
 
+void SoundFX_PlayFXIndex(SOUND_FX_T * soundFX, uint8_t index)
+{
+	if (index > soundFX->WavCount - 1)
+		index = 0;
+
+	SoundFX_PlayFile(((char*)soundFX->Filenames + index * soundFX->FilenameLenMax));
+}
+
+void SoundFX_PlayFXRandom(SOUND_FX_T * soundFX)
+{
+	uint8_t index =	index = rand() % soundFX->WavCount;
+
+	SoundFX_PlayFile(((char*)soundFX->Filenames + index * soundFX->FilenameLenMax));
+}
+
+// 0 for background
 void SoundFX_PlayFXLayered(SOUND_FX_T * soundFX, bool backgroundOrForeground)
 {
 	SoundFX_PlayFileLayered(((char*)soundFX->Filenames + soundFX->WavIndex * soundFX->FilenameLenMax), backgroundOrForeground);
@@ -270,12 +340,34 @@ void SoundFX_PlayFileLayeredBackgroudLoop(const char * filename)
 {
 	if (!PlayWav1.isPlaying())
 		SoundFX_PlayFileLayered(filename, 0);
+
+	Wav2Changed = Wav2IsPlaying ^ PlayWav2.isPlaying();
+	Wav2IsPlaying = PlayWav2.isPlaying();
+
+	if(!Wav2IsPlaying && Wav2Changed)
+	{
+		SoundFXOut.gain(WAV1_INPUT_L, 0.5);
+		SoundFXOut.gain(WAV1_INPUT_R, 0.5);
+		SoundFXOut.gain(WAV2_INPUT_L, 0);
+		SoundFXOut.gain(WAV2_INPUT_R, 0);
+	}
 }
 
 void SoundFX_PlayFXLayeredBackgroudLoop(SOUND_FX_T * soundFX)
 {
 	if (!PlayWav1.isPlaying())
 		SoundFX_PlayFXLayered(soundFX, 0);
+
+	Wav2Changed = Wav2IsPlaying ^ PlayWav2.isPlaying();
+	Wav2IsPlaying = PlayWav2.isPlaying();
+
+	if(!Wav2IsPlaying && Wav2Changed)
+	{
+		SoundFXOut.gain(WAV1_INPUT_L, 0.5);
+		SoundFXOut.gain(WAV1_INPUT_R, 0.5);
+		SoundFXOut.gain(WAV2_INPUT_L, 0);
+		SoundFXOut.gain(WAV2_INPUT_R, 0);
+	}
 }
 
 // good for music selection

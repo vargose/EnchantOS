@@ -30,20 +30,27 @@
 
 #include "FastLED.h"
 #include "Bounce2.h"
+#include "SD.h"
+#include "SPI.h"
+#include "Snooze.h"
+
+extern "C" {
+#include "LiteFXOS/OS.h"
+}
+#include "LiteFXOS/LightFX.h"
+#include "LiteFXOS/LiteFX.h"
 
 #include "Menu.h"
-#include "SD.h"
 #include "SoundFX.h"
+#include "Bluefruit.h"
+#include "IMU.h"
 
-#include "LiteFXOS/LightFX.h"
-#include "LiteFXOS/LiteFXOS.h"
-
-#include "Boards/EnchantPins.h"
+#include "Board.h"
 
 /*-----------------------------------------------------------------------------
   LED Strip
  *----------------------------------------------------------------------------*/
-#define NUM_LEDS 		10
+#define NUM_LEDS 		12
 #define COLOR_ORDER		GRB
 
 CRGB LawGiver[NUM_LEDS];
@@ -51,27 +58,27 @@ CRGB LawGiver[NUM_LEDS];
 const uint8_t BLUE_SQUARE_START 	= 0; const uint8_t BLUE_SQUARE_LENGTH 	= 1;
 const uint8_t RED_TRIANGLE_START 	= 1; const uint8_t RED_TRIANGLE_LENGTH	= 1;
 const uint8_t AMMUNITION_START 		= 2; const uint8_t AMMUNITION_LENGTH 	= 5;
-const uint8_t BARREL_START 			= 7; const uint8_t BARREL_LENGTH 		= 3;
+const uint8_t BARREL_START 			= 7; const uint8_t BARREL_LENGTH 		= 5;
 
 /*-----------------------------------------------------------------------------
   Threads to run LED patterns - controls timing
  *----------------------------------------------------------------------------*/
 // Doesnt hurt to use multiple threads, but this prop can run on 2 common thread since only 2 sections are animate at a time.
 //LITE_FX_OS_THREAD_T BlueSquareThread;
-LITE_FX_OS_THREAD_T RedTriangleThread;
-LITE_FX_OS_THREAD_T AmmunitionThread;
-LITE_FX_OS_THREAD_T BarrelThread;
+LITE_FX_THREAD_T RedTriangleThread;
+LITE_FX_THREAD_T AmmunitionThread;
+LITE_FX_THREAD_T BarrelThread;
 
 //LIGHT_FX_T BlueSquareFX;
-LIGHT_FX_T RedTriangleBlinkFX;
-LIGHT_FX_T AmmunitionRampUpFX;
-LIGHT_FX_T AmmunitionDownFX;
-LIGHT_FX_T BarrelRapidFireFX;
-LIGHT_FX_T BarrelGrenadeFX;
-LIGHT_FX_T BarrelArmorPiercingFX;
-LIGHT_FX_T BarrelDoubleWammyFX;
-LIGHT_FX_T BarrelFlareFX;
-LIGHT_FX_T RainbowFX;
+LITE_FX_T RedTriangleBlinkFX;
+LITE_FX_T AmmunitionRampUpFX;
+LITE_FX_T AmmunitionDownFX;
+LITE_FX_T BarrelRapidFireFX;
+LITE_FX_T BarrelGrenadeFX;
+LITE_FX_T BarrelArmorPiercingFX;
+LITE_FX_T BarrelDoubleWammyFX;
+LITE_FX_T BarrelFlareFX;
+LITE_FX_T RainbowFX;
 
 /*-----------------------------------------------------------------------------
   Buttons
@@ -114,13 +121,22 @@ CRGBPalette16 Palette = RainbowColors_p;
 /*-----------------------------------------------------------------------------
   Prop Vars
  *----------------------------------------------------------------------------*/
-//static bool JudgeRecognition = 1; // one time power on flag
 static uint8_t RapidFireAmmo 		= 5;
 static uint8_t GrenadeAmmo 			= 5;
 static uint8_t ArmorPiercingAmmo 	= 5;
 static uint8_t DoubleWammyAmmo 		= 5;
 static uint8_t FlareAmmo 			= 5;
 
+/*-----------------------------------------------------------------------------
+  extern Menus for circular dependency
+ *----------------------------------------------------------------------------*/
+extern MENU_T MENU_PRERECOGNITION;
+extern MENU_T MENU_RAPID_FIRE;
+extern MENU_T MENU_GRENADE;
+extern MENU_T MENU_ARMOR_PIERCING;
+extern MENU_T MENU_DOUBLE_WAMMY;
+extern MENU_T MENU_FLARE;
+extern MENU_T MENU_MUSIC;
 
 /*-----------------------------------------------------------------------------
   Common Functions
@@ -135,26 +151,23 @@ void Reload()
 	DoubleWammyAmmo 	= 5;
 	FlareAmmo 			= 5;
 
-	// Reset the animation at position 0;
-	AmmunitionRampUpFX.IndexPos = 0;
+	// Reset the animation to start at position 0;
+	// AmmunitionRampUpFX.ColorWipeVars.Index = 0;
+	// or change setting using set function, along with other settings
+	LiteFX_SetColorWipe(&AmmunitionRampUpFX, 0, true, false, CRGB::Red, CRGB::Black, 6, 10, 0);
 
 	// Place the AmmunitionRampUpFX animation on the AmmunitionThread
-	// The AmmunitionRampUpFX is configured using ColorWipe in setup()
-	// Tick 6 times, 1st tick turning 0 LEDs one
-	// Set for animation "speed" of 10 tick per second
-	// No action required on completion
-	LiteFXOS_SetThreadMomentaryArgTicksFreq(&AmmunitionThread, AmmunitionRampUpFX.Pattern, 6, 10, 0);
-
-	// Provide the animation data to the thread
-	LiteFXOS_SetThreadMemory(&AmmunitionThread, &AmmunitionRampUpFX, &LightFX_LoadMemory);
+	LiteFX_Start(&AmmunitionThread, &AmmunitionRampUpFX, 0);
 }
 
 void NoAmmo()
 {
 	SoundFX_PlayFile(WAV_NO_AMMO);
-	RedTriangleBlinkFX.Direction = 1;
-	LiteFXOS_SetThreadMomentaryArgTicksFreq(&RedTriangleThread, RedTriangleBlinkFX.Pattern, 3, 10, 0);
-	LiteFXOS_SetThreadMemory(&RedTriangleThread, &RedTriangleBlinkFX, &LightFX_LoadMemory);
+	//RedTriangleBlinkFX.BlinkVars.Direction = 1;
+
+	//Change the blink speed here
+	LiteFX_SetBlink(&RedTriangleBlinkFX, 1, CRGB::Red, CRGB::Black, 3, 10, 0);
+	LiteFX_Start(&RedTriangleThread, &RedTriangleBlinkFX, 0);
 }
 
 void FXBarrelOff(void)
@@ -168,69 +181,72 @@ void FXBarrelOff(void)
 void BootUp()
 {
 	LawGiver[BLUE_SQUARE_START] = CRGB::Blue;
-	RedTriangleBlinkFX.Direction = 1;
-	LiteFXOS_SetThreadMomentaryArgTicksFreq(&RedTriangleThread, RedTriangleBlinkFX.Pattern, 2, 2, 0);
-	LiteFXOS_SetThreadMemory(&RedTriangleThread, &RedTriangleBlinkFX, &LightFX_LoadMemory);
+
+	// Change the blink speed here
+	LiteFX_SetBlink(&RedTriangleBlinkFX, 1, CRGB::Red, CRGB::Black, 2, 2, 0);
+	LiteFX_Start(&RedTriangleThread, &RedTriangleBlinkFX, 0);
 }
 
 void Recognition()
 {
 	SoundFX_PlayFile(WAV_JUDGE_RECOGNITION);
 
+	RapidFireAmmo 		= 5;
+	GrenadeAmmo			= 5;
+	ArmorPiercingAmmo 	= 5;
+	DoubleWammyAmmo 	= 5;
+	FlareAmmo 			= 5;
+
 	LawGiver[BLUE_SQUARE_START] = CRGB::Black;
 
-	LiteFXOS_SetThreadMomentaryArgTicksFreq(&RedTriangleThread, RedTriangleBlinkFX.Pattern, 1, 2, 0);
+	LiteFX_SetBlink(&RedTriangleBlinkFX, 1, CRGB::Red, CRGB::Black, 1, 2, 0);
+	LiteFX_Start(&RedTriangleThread, &RedTriangleBlinkFX, 0);
 
-	AmmunitionRampUpFX.IndexPos = 0;
-	LiteFXOS_SetThreadMomentaryArgTicksFreq(&AmmunitionThread, AmmunitionRampUpFX.Pattern, 6, 10,  0);
-	LiteFXOS_SetThreadMemory(&AmmunitionThread, &AmmunitionRampUpFX, &LightFX_LoadMemory);
+	// start from 0, color wipe 6 times, at 10 ticks per second, no action on complete
+	LiteFX_SetColorWipe(&AmmunitionRampUpFX, 0, true, false, CRGB::Red, CRGB::Black, 6, 10, 0);
+	LiteFX_Start(&AmmunitionThread, &AmmunitionRampUpFX, 0);
 
-	Menu_SetNextMenu(); // SetNextMenu does not run menu init function
+	Menu_SetMenu(&MENU_RAPID_FIRE); // SetNextMenu does not run menu init function
 }
 
 void RapidFireStart()
 {
 	SoundFX_PlayFile(WAV_START_RAPID_FIRE);
 
-	AmmunitionRampUpFX.IndexPos = 0;
-	LiteFXOS_SetThreadMomentaryArgTicksFreq(&AmmunitionThread, AmmunitionRampUpFX.Pattern, RapidFireAmmo + 1, 10, 0);
-	LiteFXOS_SetThreadMemory(&AmmunitionThread, &AmmunitionRampUpFX, &LightFX_LoadMemory);
+	LiteFX_SetColorWipe(&AmmunitionRampUpFX, 0, true, false, CRGB::Red, CRGB::Black, RapidFireAmmo + 1, 10, 0);
+	LiteFX_Start(&AmmunitionThread, &AmmunitionRampUpFX, 0);
 }
 
 void GrenadeStart()
 {
 	SoundFX_PlayFile(WAV_START_GRENADE);
 
-	AmmunitionRampUpFX.IndexPos = 0;
-	LiteFXOS_SetThreadMomentaryArgTicksFreq(&AmmunitionThread, AmmunitionRampUpFX.Pattern, GrenadeAmmo + 1, 10, 0);
-	LiteFXOS_SetThreadMemory(&AmmunitionThread, &AmmunitionRampUpFX, &LightFX_LoadMemory);
+	LiteFX_SetColorWipe(&AmmunitionRampUpFX, 0, true, false, CRGB::Red, CRGB::Black, GrenadeAmmo + 1, 10, 0);
+	LiteFX_Start(&AmmunitionThread, &AmmunitionRampUpFX, 0);
 }
 
 void ArmorPiercingStart()
 {
 	SoundFX_PlayFile(WAV_START_ARMOR_PIERCING);
 
-	AmmunitionRampUpFX.IndexPos = 0;
-	LiteFXOS_SetThreadMomentaryArgTicksFreq(&AmmunitionThread, AmmunitionRampUpFX.Pattern, ArmorPiercingAmmo + 1, 10, 0);
-	LiteFXOS_SetThreadMemory(&AmmunitionThread, &AmmunitionRampUpFX, &LightFX_LoadMemory);
+	LiteFX_SetColorWipe(&AmmunitionRampUpFX, 0, true, false, CRGB::Red, CRGB::Black, ArmorPiercingAmmo + 1, 10, 0);
+	LiteFX_Start(&AmmunitionThread, &AmmunitionRampUpFX, 0);
 }
 
 void DoubleWammyStart()
 {
 	SoundFX_PlayFile(WAV_START_DOUBLE_WAMMY);
 
-	AmmunitionRampUpFX.IndexPos = 0;
-	LiteFXOS_SetThreadMomentaryArgTicksFreq(&AmmunitionThread, AmmunitionRampUpFX.Pattern, DoubleWammyAmmo + 1, 10, 0);
-	LiteFXOS_SetThreadMemory(&AmmunitionThread, &AmmunitionRampUpFX, &LightFX_LoadMemory);
+	LiteFX_SetColorWipe(&AmmunitionRampUpFX, 0, true, false, CRGB::Red, CRGB::Black, DoubleWammyAmmo + 1, 10, 0);
+	LiteFX_Start(&AmmunitionThread, &AmmunitionRampUpFX, 0);
 }
 
 void FlareStart()
 {
 	SoundFX_PlayFile(WAV_START_FLARE);
 
-	AmmunitionRampUpFX.IndexPos = 0;
-	LiteFXOS_SetThreadMomentaryArgTicksFreq(&AmmunitionThread, AmmunitionRampUpFX.Pattern, FlareAmmo + 1, 10, 0);
-	LiteFXOS_SetThreadMemory(&AmmunitionThread, &AmmunitionRampUpFX, &LightFX_LoadMemory);
+	LiteFX_SetColorWipe(&AmmunitionRampUpFX, 0, true, false, CRGB::Red, CRGB::Black, FlareAmmo + 1, 10, 0);
+	LiteFX_Start(&AmmunitionThread, &AmmunitionRampUpFX, 0);
 }
 
 void RapidFireTrigger()
@@ -240,12 +256,10 @@ void RapidFireTrigger()
 	if (RapidFireAmmo)
 	{
 		RapidFireAmmo--;
-		AmmunitionDownFX.IndexPos = RapidFireAmmo;
-		LiteFXOS_SetThreadMomentaryArgTicksFreq(&AmmunitionThread, AmmunitionDownFX.Pattern, 1, 10, 0);
-		LiteFXOS_SetThreadMemory(&AmmunitionThread, &AmmunitionDownFX, &LightFX_LoadMemory);
+		LiteFX_SetColorWipe(&AmmunitionDownFX, RapidFireAmmo, false, false, CRGB::Red, CRGB::Black, 1, 10, 0);
+		LiteFX_Start(&AmmunitionThread, &AmmunitionDownFX, 0);
 
-		LiteFXOS_SetThreadMomentaryArgTimeFreq(&BarrelThread, BarrelRapidFireFX.Pattern, 1200, 60, FXBarrelOff);
-		LiteFXOS_SetThreadMemory(&BarrelThread, &BarrelRapidFireFX, &LightFX_LoadMemory);
+		LiteFX_Start(&BarrelThread, &BarrelRapidFireFX, 0);
 	}
 	else
 	{
@@ -260,14 +274,12 @@ void GrenadeTrigger()
 	if (GrenadeAmmo)
 	{
 		GrenadeAmmo--;
-		AmmunitionDownFX.IndexPos = GrenadeAmmo;
-		LiteFXOS_SetThreadMomentaryArgTicksFreq(&AmmunitionThread, AmmunitionDownFX.Pattern, 1, 10, 0);
-		LiteFXOS_SetThreadMemory(&AmmunitionThread, &AmmunitionDownFX, &LightFX_LoadMemory);
+		LiteFX_SetColorWipe(&AmmunitionDownFX, GrenadeAmmo, false, false, CRGB::Red, CRGB::Black, 1, 10, 0);
+		LiteFX_Start(&AmmunitionThread, &AmmunitionDownFX, 0);
 
-		BarrelGrenadeFX.IndexPos = 0;
-		BarrelGrenadeFX.Direction = 1;
-		LiteFXOS_SetThreadMomentaryArgTicksTime(&BarrelThread, BarrelGrenadeFX.Pattern, 30, 500, FXBarrelOff);
-		LiteFXOS_SetThreadMemory(&BarrelThread, &BarrelGrenadeFX, &LightFX_LoadMemory);
+		BarrelGrenadeFX.ColorFaderVars.Index = 0;
+		BarrelGrenadeFX.ColorFaderVars.Direction = 1;
+		LiteFX_Start(&BarrelThread, &BarrelGrenadeFX, 0);
 	}
 	else
 	{
@@ -282,14 +294,12 @@ void ArmorPiercingTrigger()
 	if (ArmorPiercingAmmo)
 	{
 		ArmorPiercingAmmo--;
-		AmmunitionDownFX.IndexPos = ArmorPiercingAmmo;
-		LiteFXOS_SetThreadMomentaryArgTicksFreq(&AmmunitionThread, AmmunitionDownFX.Pattern, 1, 10, 0);
-		LiteFXOS_SetThreadMemory(&AmmunitionThread, &AmmunitionDownFX, &LightFX_LoadMemory);
+		LiteFX_SetColorWipe(&AmmunitionDownFX, ArmorPiercingAmmo, false, false, CRGB::Red, CRGB::Black, 1, 10, 0);
+		LiteFX_Start(&AmmunitionThread, &AmmunitionDownFX, 0);
 
-		BarrelArmorPiercingFX.IndexPos = 0;
-		BarrelArmorPiercingFX.Direction = 1;
-		LiteFXOS_SetThreadMomentaryArgTicksTime(&BarrelThread, BarrelArmorPiercingFX.Pattern, 60, 500, FXBarrelOff);
-		LiteFXOS_SetThreadMemory(&BarrelThread, &BarrelArmorPiercingFX, &LightFX_LoadMemory);
+		BarrelArmorPiercingFX.ColorFaderVars.Index = 0;
+		BarrelArmorPiercingFX.ColorFaderVars.Direction = 1;
+		LiteFX_Start(&BarrelThread, &BarrelArmorPiercingFX, 0);
 	}
 	else
 	{
@@ -304,14 +314,12 @@ void DoubleWammyTrigger()
 	if (DoubleWammyAmmo)
 	{
 		DoubleWammyAmmo--;
-		AmmunitionDownFX.IndexPos = DoubleWammyAmmo;
-		LiteFXOS_SetThreadMomentaryArgTicksFreq(&AmmunitionThread, AmmunitionDownFX.Pattern, 1, 10, 0);
-		LiteFXOS_SetThreadMemory(&AmmunitionThread, &AmmunitionDownFX, &LightFX_LoadMemory);
+		LiteFX_SetColorWipe(&AmmunitionDownFX, DoubleWammyAmmo, false, false, CRGB::Red, CRGB::Black, 1, 10, 0);
+		LiteFX_Start(&AmmunitionThread, &AmmunitionDownFX, 0);
 
-		BarrelDoubleWammyFX.IndexPos = 0;
-		BarrelDoubleWammyFX.Direction = 1;
-		LiteFXOS_SetThreadMomentaryArgTicksTime(&BarrelThread, BarrelDoubleWammyFX.Pattern, 120, 800, FXBarrelOff);
-		LiteFXOS_SetThreadMemory(&BarrelThread, &BarrelDoubleWammyFX, &LightFX_LoadMemory);
+		BarrelDoubleWammyFX.ColorFaderVars.Index = 0;
+		BarrelDoubleWammyFX.ColorFaderVars.Direction = 1;
+		LiteFX_Start(&BarrelThread, &BarrelDoubleWammyFX, 0);
 	}
 	else
 	{
@@ -326,14 +334,12 @@ void FlareTrigger()
 	if (FlareAmmo)
 	{
 		FlareAmmo--;
-		AmmunitionDownFX.IndexPos = FlareAmmo;
-		LiteFXOS_SetThreadMomentaryArgTicksFreq(&AmmunitionThread, AmmunitionDownFX.Pattern, 1, 10, 0);
-		LiteFXOS_SetThreadMemory(&AmmunitionThread, &AmmunitionDownFX, &LightFX_LoadMemory);
+		LiteFX_SetColorWipe(&AmmunitionDownFX, FlareAmmo, false, false, CRGB::Red, CRGB::Black, 1, 10, 0);
+		LiteFX_Start(&AmmunitionThread, &AmmunitionDownFX, 0);
 
-		BarrelFlareFX.IndexPos = 0;
-		BarrelFlareFX.Direction = 1;
-		LiteFXOS_SetThreadMomentaryArgTicksTime(&BarrelThread, BarrelFlareFX.Pattern, 60, 1200, FXBarrelOff);
-		LiteFXOS_SetThreadMemory(&BarrelThread, &BarrelFlareFX, &LightFX_LoadMemory);
+		BarrelFlareFX.ColorFaderVars.Index = 0;
+		BarrelFlareFX.ColorFaderVars.Direction = 1;
+		LiteFX_Start(&BarrelThread, &BarrelFlareFX, 0);
 	}
 	else
 	{
@@ -341,35 +347,50 @@ void FlareTrigger()
 	}
 }
 
+void StartMusicMenu()
+{
+	SoundFX_PlayFX(&SoundFXMusic);
+	LiteFX_Start(&RedTriangleThread, &RainbowFX, 0);
+	Menu_StartMenu(&MENU_MUSIC);
+}
+
+void EndMusicMenu()
+{
+	SoundFX_Stop();
+	LightFX_SetOff(LawGiver, 0, NUM_LEDS);
+	Menu_StartMenu(&MENU_PRERECOGNITION);
+}
+
+void NextSong()
+{
+	SoundFX_PlayNext(&SoundFXMusic);
+}
+
 /*-----------------------------------------------------------------------------
   Menus
  *----------------------------------------------------------------------------*/
-// A Menu is a mode. Build a Menu for each mode with different functions mapped to a button/event.
+// A Menu is a mode/state.
+// Build a Menu for each mode with different functions mapped to a button/event.
 /*----------------------------------------------------------------------------*/
 enum FUNCTION_MAP_TRANSLATION
 {
 	BUTTON_FUNCTION_RECOGNITION,
 	BUTTON_FUNCTION_TRIGGER,
 	BUTTON_FUNCTION_MAGAZINE,
+	BUTTON_FUNCTION_MUSIC,
 };
 
-// We will skip making a header file.
-extern MENU_T MENU_RAPID_FIRE;
-extern MENU_T MENU_GRENADE;
-extern MENU_T MENU_ARMOR_PIERCING;
-extern MENU_T MENU_DOUBLE_WAMMY;
-extern MENU_T MENU_FLARE;
-
-MENU_T MENU_JUDGE_RECOGNITION =
+MENU_T MENU_PRERECOGNITION =
 {
 	.NextMenu = &MENU_RAPID_FIRE,
 	.PrevMenu = 0,
 	.InitFunction = BootUp,
 	.FunctionMap = // complier does not allow array indexing within struct, manually order to match translation map
 	{
-		Recognition,	//.FunctionMap[BUTTON_FUNCTION_RECOGNITION] = ,
-		0,				//.FunctionMap[BUTTON_FUNCTION_TRIGGER] 	= ,
-		0,				//.FunctionMap[BUTTON_FUNCTION_MAGAZINE] 	= ,
+		Recognition,		//.FunctionMap[BUTTON_FUNCTION_RECOGNITION]
+		0,					//.FunctionMap[BUTTON_FUNCTION_TRIGGER]
+		0,					//.FunctionMap[BUTTON_FUNCTION_MAGAZINE]
+		StartMusicMenu,		//.FunctionMap[MENU_START_MUSIC]
 	},
 };
 
@@ -380,9 +401,10 @@ MENU_T MENU_RAPID_FIRE =
 	.InitFunction = RapidFireStart,
 	.FunctionMap =
 	{
-		Menu_StartNextMenu,	//.FunctionMap[BUTTON_FUNCTION_RECOGNITION] = Menu_SetNextMenu,
-		RapidFireTrigger,	//.FunctionMap[BUTTON_FUNCTION_TRIGGER] 	= RapidFireTrigger,
-		Reload,				//.FunctionMap[BUTTON_FUNCTION_MAGAZINE] 	= MagazineCommon,
+		Menu_StartNextMenu,		//.FunctionMap[BUTTON_FUNCTION_RECOGNITION] = Menu_SetNextMenu,
+		RapidFireTrigger,		//.FunctionMap[BUTTON_FUNCTION_TRIGGER] 	= RapidFireTrigger,
+		Reload,					//.FunctionMap[BUTTON_FUNCTION_MAGAZINE] 	= MagazineCommon,
+		StartMusicMenu,			//.FunctionMap[MENU_START_MUSIC]
 	},
 };
 
@@ -396,6 +418,7 @@ MENU_T MENU_GRENADE =
 		Menu_StartNextMenu,
 		GrenadeTrigger,
 		Reload,
+		StartMusicMenu,
 	},
 };
 
@@ -409,6 +432,7 @@ MENU_T MENU_ARMOR_PIERCING =
 		Menu_StartNextMenu,
 		ArmorPiercingTrigger,
 		Reload,
+		StartMusicMenu,
 	},
 };
 
@@ -422,6 +446,7 @@ MENU_T MENU_DOUBLE_WAMMY =
 		Menu_StartNextMenu,
 		DoubleWammyTrigger,
 		Reload,
+		StartMusicMenu,
 	},
 };
 
@@ -435,79 +460,89 @@ MENU_T MENU_FLARE =
 		Menu_StartNextMenu,
 		FlareTrigger,
 		Reload,
+		StartMusicMenu,
 	},
 };
-
-void NextSong()
-{
-	SoundFX_PlayNext(&SoundFXMusic);
-}
-
-void StartMusic()
-{
-	SoundFX_PlayFX(&SoundFXMusic);
-
-	LiteFXOS_SetThreadCycleArgFreq(&AmmunitionThread, RainbowFX.Pattern, 60);
-	LiteFXOS_SetThreadMemory(&AmmunitionThread, &RainbowFX, &LightFX_LoadMemory);
-}
 
 MENU_T MENU_MUSIC =
 {
 	.NextMenu = 0,
 	.PrevMenu = 0,
-	.InitFunction = StartMusic,
+	.InitFunction = 0,
 	.FunctionMap =
 	{
-		Menu_StartNextMenu,
+		0,
 		NextSong,
 		0,
+		EndMusicMenu,
 	},
 };
 
 void setup()
 {
-	delay(500); 			// sanity delay
-	Serial.begin(9600); 	// USB is always 12 Mbit/sec
+	delay(500); 						// sanity delay
+	Serial.begin(9600); 				// USB is always 12 Mbit/sec
 
 	pinMode(ENABLE_5V_PIN, OUTPUT);
 	digitalWrite(ENABLE_5V_PIN, HIGH);  // 5V enable
 
-	pinMode(2, OUTPUT);
-	digitalWrite(2, HIGH); 	// turn on the amplifier
-
-	FastLED.addLeds<WS2812B, LED_DATA_PIN, COLOR_ORDER>(LawGiver, NUM_LEDS).setCorrection( TypicalLEDStrip );
+	FastLED.addLeds<WS2812B, LED_DATA_PIN1, COLOR_ORDER>(LawGiver, NUM_LEDS).setCorrection( TypicalLEDStrip );
 	FastLED.showColor(0);
 	FastLED.show();
 
+	 SPI.setMOSI(SDCARD_MOSI_PIN);
+	 SPI.setMISO(SDCARD_MISO_PIN);
+	 SPI.setSCK(SDCARD_SCK_PIN);
+
 	if (SD.begin(SDCARD_CS_PIN))
 	{
-		SoundFX_Init();
+		SoundFX_Init(ENABLE_AMP_PIN);
 		SoundFX_InitFXWithDirectory(&SoundFXMusic, (char **)FilenamesMusic, SOUND_FILENAME_LEN_MAX, SOUND_GROUP_FILE_COUNT_MAX, SOUND_DIR_MUSIC);
+		debug_SoundFX_PrintFilenames((char **)FilenamesMusic, SOUND_GROUP_FILE_COUNT_MAX, SOUND_FILENAME_LEN_MAX);
 	}
 	else
 	{
 		Serial.println("Unable to access the SD card");
 	}
 
-	pinMode(18,	 INPUT_PULLUP);
-	pinMode(19,  INPUT_PULLUP);
-	pinMode(20,	 INPUT_PULLUP);
+	pinMode(13,	 INPUT_PULLUP);
+	pinMode(18,  INPUT_PULLUP);
+	pinMode(19,	 INPUT_PULLUP);
 
-	ButtonRecognition	= Bounce(18, 10);  // 10 ms debounce
-	ButtonTrigger		= Bounce(19, 10);  // 10 ms debounce
-	ButtonMagazine		= Bounce(20, 10);  // 10 ms debounce
+	ButtonRecognition	= Bounce(13, 10);  // 10 ms debounce
+	ButtonTrigger		= Bounce(18, 10);  // 10 ms debounce
+	ButtonMagazine		= Bounce(19, 10);  // 10 ms debounce
 
-	LightFX_SetFXPaletteWipe(&RainbowFX, 			LawGiver, 0, NUM_LEDS, 120, &Palette, 255*2/3);
-	LightFX_SetFXBlink(&RedTriangleBlinkFX, 		LawGiver, RED_TRIANGLE_START, RED_TRIANGLE_LENGTH, 1, CRGB::Red, CRGB::Black);
-	LightFX_SetFXColorWipe(&AmmunitionRampUpFX, 	LawGiver, AMMUNITION_START, AMMUNITION_LENGTH, 0, 1, false, CRGB::Red, CRGB::Black);
-	LightFX_SetFXColorWipe(&AmmunitionDownFX, 		LawGiver, AMMUNITION_START, AMMUNITION_LENGTH, 6, 0, false, CRGB::Red, CRGB::Black);
-	LightFX_SetFXColorFader(&BarrelRapidFireFX, 	LawGiver, BARREL_START, BARREL_LENGTH, 0, 1, 4,  false, CRGB::Black, CRGB::White);
-	LightFX_SetFXColorFader(&BarrelGrenadeFX, 		LawGiver, BARREL_START, BARREL_LENGTH, 0, 1, 30, false, CRGB::Black, CRGB::White);
-	LightFX_SetFXColorFader(&BarrelArmorPiercingFX, LawGiver, BARREL_START, BARREL_LENGTH, 0, 1, 30, true,  CRGB::Black, CRGB::White);
-	LightFX_SetFXColorFader(&BarrelDoubleWammyFX, 	LawGiver, BARREL_START, BARREL_LENGTH, 0, 1, 60, false, CRGB::Black, CRGB::White);
-	LightFX_SetFXColorFader(&BarrelFlareFX, 		LawGiver, BARREL_START, BARREL_LENGTH, 0, 1, 30, true,  CRGB::Black, CRGB::Red);
+	//Bluefruit_Init();
 
-	Menu_StartMenu(&MENU_JUDGE_RECOGNITION);
+	IMU_Init();
+
+	// Set animation behaviors
+	// The AmmunitionRampUpFX is configured as a ColorWipe
+	// Set to tick 6 times. 1st tick turning 0 LEDs on
+	// Set for animation "speed" of 10 tick per second
+	// No action required on completion
+	LiteFX_InitColorWipe(&AmmunitionRampUpFX, 		LawGiver, AMMUNITION_START, AMMUNITION_LENGTH,	0, true, 	false, CRGB::Red, CRGB::Black, 6, 10, 0);
+	LiteFX_InitColorWipe(&AmmunitionDownFX, 		LawGiver, AMMUNITION_START, AMMUNITION_LENGTH, 	6, false, 	false, CRGB::Red, CRGB::Black, 1, 10, 0);
+
+	// The BarrelRapidFireFX is configured as a ColorFader
+	// Set to tick 72 times at 60 tick per second, for a total time of 1.2 seconds
+	// Make sure the barrel LEDs are off when finished
+	LiteFX_InitColorFader(&BarrelRapidFireFX, 		LawGiver, BARREL_START, 	BARREL_LENGTH,		0, true, 	4, 	false, CRGB::Black, CRGB::White, 72, 60, FXBarrelOff);
+	LiteFX_InitColorFader(&BarrelGrenadeFX, 		LawGiver, BARREL_START, 	BARREL_LENGTH, 		0, true, 	30, false, CRGB::Black, CRGB::White, 30, 60, FXBarrelOff);
+	LiteFX_InitColorFader(&BarrelArmorPiercingFX,	LawGiver, BARREL_START, 	BARREL_LENGTH, 		0, true, 	30, true,  CRGB::Black, CRGB::White, 60, 120, FXBarrelOff);
+
+	// The ColorFader pattern is set for 0 brightness to full brightness in 60 ticks.
+	// We want the to reset the pattern to start at 0 brightness, so we set the BoundaryBehavior to false.
+	// We want a total time of .8 seconds. We select 120 ticks to complete 2 cycles of 0 to full brightness.
+	// 120 / .8 = 150 ticks per second.
+	LiteFX_InitColorFader(&BarrelDoubleWammyFX, 	LawGiver, BARREL_START, 	BARREL_LENGTH, 		0, true, 	60, false, CRGB::Black, CRGB::White, 120, 150, FXBarrelOff);
+	LiteFX_InitColorFader(&BarrelFlareFX, 			LawGiver, BARREL_START, 	BARREL_LENGTH, 		0, true, 	30, true,  CRGB::Black, CRGB::Red, 	 60, 50, FXBarrelOff);
+
+	LiteFX_InitBlink(&RedTriangleBlinkFX, LawGiver, RED_TRIANGLE_START, RED_TRIANGLE_LENGTH, 1, CRGB::Red, CRGB::Black, 3, 10, 0);
+	LiteFX_InitPaletteWipe(&RainbowFX, LawGiver, 0, NUM_LEDS, 0, true, 120, 0, &Palette, 255*2/3, 0, 60, 0);
+
+	Menu_StartMenu(&MENU_PRERECOGNITION);
 
 	Serial.println("End Setup");
 }
@@ -516,44 +551,54 @@ void loop()
 {
 	static bool updateLEDs;
 
-	LiteFXOS_SetTimerCounter(millis());
-
-	if (LiteFXOS_ProcThread(&RedTriangleThread))	updateLEDs = 1;
-	if (LiteFXOS_ProcThread(&AmmunitionThread))		updateLEDs = 1;
-	if (LiteFXOS_ProcThread(&BarrelThread))			updateLEDs = 1;
+	// process LightFX threads
+	if (LiteFX_ProcThread(&RedTriangleThread))		updateLEDs = 1;
+	if (LiteFX_ProcThread(&AmmunitionThread))		updateLEDs = 1;
+	if (LiteFX_ProcThread(&BarrelThread))			updateLEDs = 1;
 	if (updateLEDs) 								{updateLEDs = 0; FastLED.show();}
 
+	// Check buttons
 	ButtonRecognition.update();
 	ButtonTrigger.update();
 	ButtonMagazine.update();
 	if(ButtonRecognition.fell()) 	{Menu_DoFunction(BUTTON_FUNCTION_RECOGNITION);}
 	if(ButtonTrigger.fell()) 		{Menu_DoFunction(BUTTON_FUNCTION_TRIGGER);}
 	if(ButtonMagazine.fell()) 		{Menu_DoFunction(BUTTON_FUNCTION_MAGAZINE);}
+	if(!ButtonRecognition.read() && ButtonTrigger.fell())	{Menu_DoFunction(BUTTON_FUNCTION_MUSIC);}
+
+	// Check Bluetooth
+	Bluefruit_Poll();
+
+	if(Bluefruit_GetUpdateFlag())
+	{
+		Bluefruit_ResetUpdateFlag();
+		//Bluefruit_GetColorR(), Bluefruit_GetColorG(), Bluefruit_GetColorB()
+		if(Bluefruit_GetButtonUp())		{}
+		if(Bluefruit_GetButtonDown())	{}
+		if(Bluefruit_GetButtonLeft())	{}
+		if(Bluefruit_GetButtonRight())	{}
+
+		if(Bluefruit_GetButton1())		{Menu_DoFunction(BUTTON_FUNCTION_RECOGNITION);}
+		if(Bluefruit_GetButton2())		{Menu_DoFunction(BUTTON_FUNCTION_TRIGGER);}
+		if(Bluefruit_GetButton3())		{Menu_DoFunction(BUTTON_FUNCTION_MAGAZINE);}
+		if(Bluefruit_GetButton4())		{Menu_DoFunction(BUTTON_FUNCTION_MUSIC);}
+	}
 
 	if (Serial.available())
 	{
 		char ch = Serial.read();
-		if (ch == '1')	{Menu_DoFunction(BUTTON_FUNCTION_RECOGNITION);}
-		if (ch == '2')	{Menu_DoFunction(BUTTON_FUNCTION_TRIGGER);}
-		if (ch == '3')	{Menu_DoFunction(BUTTON_FUNCTION_MAGAZINE);}
-		if (ch == '4')
-		{
-			if (Menu_GetMenu() == &MENU_MUSIC)
-			{
-				LightFX_SetOff(LawGiver, 0, NUM_LEDS);
-				LiteFXOS_SetThreadCycleArgFreq(&AmmunitionThread, 0, 60); //stop thread music was set on
-				SoundFX_Stop();
-				Menu_StartMenu(&MENU_JUDGE_RECOGNITION);
-			}
-			else
-			{
-				Menu_StartMenu(&MENU_MUSIC);
-			}
-		}
+		if (ch == '1') {Menu_DoFunction(BUTTON_FUNCTION_RECOGNITION);}
+		if (ch == '2') {Menu_DoFunction(BUTTON_FUNCTION_TRIGGER);}
+		if (ch == '3') {Menu_DoFunction(BUTTON_FUNCTION_MAGAZINE);}
+		if (ch == '4') {Menu_DoFunction(BUTTON_FUNCTION_MUSIC);}
 		if (ch == 'e')
 		{
 			Serial.println("echo");
-			debug_SoundFX_PrintFilenames((char **)FilenamesMusic, SOUND_GROUP_FILE_COUNT_MAX, SOUND_FILENAME_LEN_MAX);
+		}
+		if (ch == 'b')
+		{
+			//Serial.println(BatteryGetRaw());
+			//IMU_PrintSerial();
 		}
 	}
 }

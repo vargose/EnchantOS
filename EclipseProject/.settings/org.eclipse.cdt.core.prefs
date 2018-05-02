@@ -1,0 +1,6 @@
+eclipse.preferences.version=1
+environment/project/ilg.gnuarmeclipse.managedbuild.cross.config.elf.debug.956829481/PATH/delimiter=;
+environment/project/ilg.gnuarmeclipse.managedbuild.cross.config.elf.debug.956829481/PATH/operation=replace
+environment/project/ilg.gnuarmeclipse.managedbuild.cross.config.elf.debug.956829481/PATH/value=C\:\\Program Files (x86)\\Arduino\\hardware\\tools\\arm\\bin;C\:\\Program Files (x86)\\GNU Tools ARM Embedded\\6 2017-q2-update\\bin;C\:/Program Files/Java/jre1.8.0_151/bin/server;C\:/Program Files/Java/jre1.8.0_151/bin;C\:/Program Files/Java/jre1.8.0_151/lib/amd64;C\:\\ProgramData\\Oracle\\Java\\javapath;C\:\\Windows\\system32;C\:\\Windows;C\:\\Windows\\System32\\Wbem;C\:\\Windows\\System32\\WindowsPowerShell\\v1.0\\;C\:\\Program Files\\PuTTY\\;C\:\\Program Files (x86)\\Skype\\Phone\\;C\:\\Users\\SLi\\AppData\\Local\\Microsoft\\WindowsApps;;C\:\\eclipse;C\:\\Program Files\\GNU MCU Eclipse\\Build Tools\\2.9-20170629-1013\\bin\\bin
+environment/project/ilg.gnuarmeclipse.managedbuild.cross.config.elf.debug.956829481/append=true
+environment/project/ilg.gnuarmeclipse.managedbuild.cross.config.elf.debug.956829481/appendContributed=true

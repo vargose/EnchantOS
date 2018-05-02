@@ -3,8 +3,11 @@
 
 #include "FastLED.h"
 
+extern "C" {
+#include "LiteFXOS.h"
+}
 #include "LiteFXOS/LightFX.h"
-#include "LiteFXOS/LiteFXOS.h"
+#include "LiteFXOS/LiteFX.h"
 
 #define ENABLE_5V_PIN	8
 #define LED_DATA_PIN	9
@@ -15,8 +18,8 @@
 CRGB LEDStrip[NUM_LEDS];
 CRGB LEDStripFullBrightness[NUM_LEDS];
 
-LIGHT_FX_T 			Animation;
-LITE_FX_OS_THREAD_T Thread;
+LITE_FX_T 		 Animation;
+LITE_FX_THREAD_T Thread;
 
 void StartFlicker()
 {
@@ -29,17 +32,14 @@ void StartFlicker()
 
 	// We can reuse the same animation and thread objects since they are no longer used
 	// set flicker settings
-	LightFX_SetFXColorFaderStrip(&Animation, LEDStrip, 0, NUM_LEDS, 0, true, 100, 120, true, LEDStripFullBrightness, CRGB::Black);
-	LiteFXOS_SetThreadCycleArgFreq(&Thread, Animation.Pattern, 60);
-	// LiteFXOS_SetThreadMemory(&Thread, &Animation, &LightFX_LoadMemory);
+
+	LiteFX_InitColorFaderStrip(&Animation, LEDStrip, 0, NUM_LEDS, 0, true, 100, 120, true, LEDStripFullBrightness, CRGB::Black, 0, 60, 0);
 }
 
 void Reset()
 {
 	// orange light run up the length of the strand
-	LightFX_SetFXColorWipe(&Animation, LEDStrip, 0, NUM_LEDS, 0, true, true, CRGB::Orange, CRGB::Black);
-	LiteFXOS_SetThreadMomentaryArgTicksTime(&Thread, Animation.Pattern, NUM_LEDS, 1000, StartFlicker);
-	LiteFXOS_SetThreadMemory(&Thread, &Animation, &LightFX_LoadMemory);
+	LiteFX_InitColorWipe(&Animation, LEDStrip, 0, NUM_LEDS, 0, true, true, CRGB::Orange, CRGB::Black, NUM_LEDS, 20, StartFlicker);
 }
 
 void setup() {
@@ -62,7 +62,7 @@ void loop()
 
 	LiteFXOS_SetTimerCounter(millis());
 
-	if (LiteFXOS_ProcThread(&Thread)) updateLEDs = 1;
+	if (LiteFX_ProcThread(&Thread)) updateLEDs = 1;
 	if (updateLEDs) FastLED.show();
 }
 
