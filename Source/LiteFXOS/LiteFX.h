@@ -24,16 +24,6 @@
 #ifndef SOURCE_LITEFXOS_LITEFX_H_
 #define SOURCE_LITEFXOS_LITEFX_H_
 
-#include "FastLED.h"
-
-#include "PaletteTable.h"
-
-extern "C" {
-#include "OS.h"
-}
-#include "LightFX.h"
-#include "LiteFX.h"
-
 typedef struct LiteFX LITE_FX_T;
 typedef const struct LiteFXTickRate LITE_FX_TICK_RATE_T;
 typedef const struct LiteFXInterface LITE_FX_INTERFACE_T;

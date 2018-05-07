@@ -1,13 +1,4 @@
-#include <Wire.h>
-#include "WProgram.h"
-
-#include "FastLED.h"
-
-extern "C" {
-#include "OS.h"
-}
-#include "LightFX.h"
-#include "LiteFX.h"
+#include "LiteFXOS.h"
 
 #define ENABLE_5V_PIN	8
 #define LED_DATA_PIN	10
@@ -37,6 +28,7 @@ void setup() {
 	delay(2000);
 	Serial.begin(9600);
 
+	// for Enchant board only
 	pinMode(ENABLE_5V_PIN, OUTPUT);
 	digitalWrite(ENABLE_5V_PIN, HIGH);
 
@@ -79,20 +71,4 @@ void loop()
 	if (LiteFX_ProcThread(&AnimationMiddleThread)) updateLEDs = 1;
 
 	if (updateLEDs) FastLED.show();
-
-	if (Serial.available())
-	{
-		char ch = Serial.read();
-
-		if (ch == 'e')
-		{
-			Serial.println("echo");
-		}
-	}
-}
-
-extern "C"{
-  int _getpid(){ return -1;}
-  int _kill(int pid, int sig){ return -1; }
-//  int _write(){return -1;}
 }

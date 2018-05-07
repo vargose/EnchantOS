@@ -137,7 +137,6 @@ void LiteFX_InitColorFaderStrip(LITE_FX_T * fx, CRGB * ledStrip, uint16_t ledSta
 	fx->p_IndexHandle 		= &fx->ColorFaderStripVars.Index;
 	fx->p_DirectionHandle 	= &fx->ColorFaderStripVars.Direction;
 	fx->p_Color1Handle		= &fx->ColorFaderStripVars.Color1;
-	//lesstrip
 
 	fx->Ticks 			= ticks;
 	fx->Freq	 		= ticksPerSecond;

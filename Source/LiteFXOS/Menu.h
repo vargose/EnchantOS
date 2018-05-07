@@ -24,9 +24,6 @@
 #ifndef MENU_H
 #define MENU_H
 
-#include <stdint.h>
-#include <stdbool.h>
-
 #define MENU_FUNCTIONS_COUNT 10
 
 typedef const struct Menu

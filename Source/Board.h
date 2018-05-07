@@ -72,7 +72,7 @@ inline uint32_t BatteryGetRaw()
 	return analogRead(BATTERY_PIN);
 }
 
-#define MICROPHONE_SAMPLE_INTERVAL (30)
+#define MICROPHONE_SAMPLE_INTERVAL 30
 
 inline float MicrophoneGetPeakToPeak()
 {

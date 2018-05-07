@@ -24,6 +24,9 @@
 			Used for navigating between function mappings to buttons/events.
 */
 /**************************************************************************/
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "Menu.h"
 
 MENU_T	*	MenuSelect;
