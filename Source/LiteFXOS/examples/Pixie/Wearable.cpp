@@ -4,10 +4,10 @@
 
 #define BUTTON_PIN 	0
 
-#define LED_DATA_PIN 	4
+#define LED_DATA_PIN 	10
 #define LED_TYPE    	WS2812B
 #define COLOR_ORDER 	GRB
-#define NUM_LEDS    	15
+#define NUM_LEDS    	5
 
 CRGB LEDStrip[NUM_LEDS];
 CRGB LEDStripBuffer[NUM_LEDS];
@@ -27,8 +27,8 @@ void setup() {
 	Serial.begin(9600); // USB is always 12 Mbit/sec
 
 	// Enable 5V on Enchant board
-//	pinMode(8,  INPUT_PULLUP);
-//	digitalWrite(8, HIGH);
+	pinMode(8,  INPUT_PULLUP);
+	digitalWrite(8, HIGH);
 
   	pinMode(BUTTON_PIN,	INPUT_PULLUP);
 
@@ -39,8 +39,6 @@ void setup() {
 	FastLED.show();
 
 	LiteFX_InitDefault(LEDStrip, 0, NUM_LEDS, LEDStripBuffer);
-
-	LightFXNext();
 }
 
 void loop()

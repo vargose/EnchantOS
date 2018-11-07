@@ -27,7 +27,9 @@
 #include <stdbool.h>
 #include <math.h>
 
+#include "WS2812Serial.h"
 #include "FastLED.h"
+
 #include "LightFX.h"
 
 #define FASTLED_PALLETTE_MAX 	255
@@ -44,6 +46,17 @@ static inline void MapLEDStrip(CRGB * ledStart, uint16_t numLEDs)
 {
 	p_LEDStrip = ledStart;
 	NumLEDs = numLEDs;
+}
+
+/*-----------------------------------------------------------------------------
+  Common LightFX Init
+ *----------------------------------------------------------------------------*/
+// Usually the FX position on the LED strip doesnt need to change
+void LightFX_InitFXMap(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength)
+{
+	//MapLEDStrip(&ledStrip[ledStart], ledLength);
+	fx->p_LEDStrip = &ledStrip[ledStart];
+	fx->NumLEDs = ledLength;
 }
 
 //static inline void MapLEDStripArgStartEnd(CRGB * ledStrip, uint16_t start, uint16_t end)
@@ -73,8 +86,13 @@ static inline void MapLEDStrip(CRGB * ledStart, uint16_t numLEDs)
 //	p_LEDStripBuffer = ledStripBuffer;
 //}
 
+void LightFX_SetFXTime()
+{
+
+}
+
 /*-----------------------------------------------------------------------------
-  Common Pattern Variables - Shared by patterns
+  Common Pattern Variables - Context of pattern - Shared by patterns
  *----------------------------------------------------------------------------*/
 //Callee Save/Modify
 static uint32_t			* p_IndexPos;
@@ -94,6 +112,7 @@ static uint32_t Special1;
 static uint32_t	Special2;
 static uint32_t	Special3;
 static bool		BoolSpecial;
+static float	FloatSpecial;
 
 /*-----------------------------------------------------------------------------
   Misc Set Functions
@@ -125,7 +144,7 @@ void LightFX_SetSolid(CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, CR
 }
 
 /*-----------------------------------------------------------------------------
-  Common Helper Functions
+  Common Pattern Step Helper Functions
  *----------------------------------------------------------------------------*/
 //inclusive of bounds, makes reaching 0 more natural
 static inline void HelperIndexStepBound(uint32_t * index, bool * direction, uint32_t stepSize, uint32_t boundLeft, uint32_t boundRight)
@@ -311,6 +330,20 @@ void ColorFader()
 	HelperIndexStep(p_IndexPos, p_Direction, 1, 0, Steps, BoundaryBehavior);
 }
 
+void ColorFader(LIGHT_FX_T * fx)
+{
+	FX_COLOR_FADER_VARS_T * vars = 	(FX_COLOR_FADER_VARS_T *)fx->p_Vars;
+
+	for (uint16_t n = 0; n < NumLEDs; n++)
+	{
+		fx->p_LEDStrip[n].r = ((vars->Color1.r * (vars->TransitionSteps - vars->Index)) + (vars->Color2.r * vars->Index)) / vars->TransitionSteps;
+		fx->p_LEDStrip[n].r = ((vars->Color1.g * (vars->TransitionSteps - vars->Index)) + (vars->Color2.g * vars->Index)) / vars->TransitionSteps;
+		fx->p_LEDStrip[n].r = ((vars->Color1.b * (vars->TransitionSteps - vars->Index)) + (vars->Color2.b * vars->Index)) / vars->TransitionSteps;
+	}
+
+	HelperIndexStep(&vars->Index, &vars->Direction, 1, 0, vars->TransitionSteps, vars->BoundaryBehavior);
+}
+
 //void inline MapColorFaderVars(uint32_t * index, bool * direction, uint16_t transitionSteps, bool boundaryBehavior, CRGB color1, CRGB color2)
 //{
 //	p_IndexPos = index;
@@ -334,7 +367,7 @@ void ColorFader()
 //	ColorFader();
 //}
 
-void LoadColorFader(void * fx)
+void LoadColorFader(LIGHT_FX_T * fx)
 {
 	MapLEDStrip(((LIGHT_FX_T *)fx)->p_LEDStrip, ((LIGHT_FX_T *)fx)->NumLEDs);
 
@@ -346,22 +379,6 @@ void LoadColorFader(void * fx)
 	BoundaryBehavior 	= ((FX_COLOR_FADER_VARS_T *)((LIGHT_FX_T *)fx)->p_Vars)->BoundaryBehavior;
 }
 
-void LightFX_InitFXColorFader(LIGHT_FX_T * fx, FX_COLOR_FADER_VARS_T * vars, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t startingIndex, bool startingDirection, uint16_t transitionSteps, bool boundaryBehavior, CRGB color1, CRGB color2)
-{
-	fx->Pattern 	= ColorFader;
-	fx->LoadFX 		= LoadColorFader;
-	fx->p_LEDStrip 	= &ledStrip[ledStart];
-	fx->NumLEDs 	= ledLength;
-	fx->p_Vars	 	= vars;
-
-	((FX_COLOR_FADER_VARS_T *)(fx->p_Vars))->Index				= startingIndex;
-	((FX_COLOR_FADER_VARS_T *)(fx->p_Vars))->Direction 			= startingDirection;
-	((FX_COLOR_FADER_VARS_T *)(fx->p_Vars))->TransitionSteps  	= transitionSteps;
-	((FX_COLOR_FADER_VARS_T *)(fx->p_Vars))->BoundaryBehavior 	= boundaryBehavior;
-	((FX_COLOR_FADER_VARS_T *)(fx->p_Vars))->Color1 			= color1;
-	((FX_COLOR_FADER_VARS_T *)(fx->p_Vars))->Color2 			= color2;
-}
-
 void LightFX_SetFXColorFader(LIGHT_FX_T * fx, uint32_t startingIndex, bool startingDirection, uint16_t transitionSteps, bool boundaryBehavior, CRGB color1, CRGB color2)
 {
 	((FX_COLOR_FADER_VARS_T *)(fx->p_Vars))->Index 				= startingIndex;
@@ -370,6 +387,17 @@ void LightFX_SetFXColorFader(LIGHT_FX_T * fx, uint32_t startingIndex, bool start
 	((FX_COLOR_FADER_VARS_T *)(fx->p_Vars))->BoundaryBehavior 	= boundaryBehavior;
 	((FX_COLOR_FADER_VARS_T *)(fx->p_Vars))->Color1 			= color1;
 	((FX_COLOR_FADER_VARS_T *)(fx->p_Vars))->Color2 			= color2;
+}
+
+void LightFX_InitFXColorFader(LIGHT_FX_T * fx, FX_COLOR_FADER_VARS_T * vars, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t startingIndex, bool startingDirection, uint16_t transitionSteps, bool boundaryBehavior, CRGB color1, CRGB color2)
+{
+	fx->Pattern 	= ColorFader;
+	fx->LoadFX 		= LoadColorFader;
+	fx->p_LEDStrip 	= &ledStrip[ledStart];
+	fx->NumLEDs 	= ledLength;
+	fx->p_Vars	 	= vars;
+
+	LightFX_SetFXColorFader(fx, startingIndex, startingDirection, transitionSteps, boundaryBehavior, color1, color2);
 }
 
 void LightFX_SetFXColorFaderCycleTime(LIGHT_FX_T * fx, uint32_t cycleTimeMs, uint16_t ticksPerSecond)
@@ -397,7 +425,7 @@ void ColorFaderStrip()
 	HelperIndexStep(p_IndexPos, p_Direction, 1, 0, COLOR_FADER_STRIP_BOUNDARY, BoundaryBehavior);
 }
 
-void LoadColorFaderStrip(void * fx)
+void LoadColorFaderStrip(LIGHT_FX_T * fx)
 {
 	MapLEDStrip(((LIGHT_FX_T *)fx)->p_LEDStrip, ((LIGHT_FX_T *)fx)->NumLEDs);
 
@@ -462,24 +490,8 @@ void ColorWipe()
 	HelperIndexStep(p_IndexPos, p_Direction, 1, 0, NumLEDs, BoundaryBehavior);
 }
 
-//void inline MapColorWipeVars(uint32_t * indexPos, bool * direction, bool boundaryBehavior, CRGB color1, CRGB color2)
-//{
-//	p_IndexPos = indexPos;
-//	p_Direction = direction;
-//	Color1 = color1;
-//	Color2 = color2;
-//	BoundaryBehavior = boundaryBehavior;
-//}
 
-//void LightFX_ProcColorWipe(CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t * indexPos, bool * direction, bool boundaryBehavior, CRGB color1, CRGB color2)
-//{
-//	MapLEDStripArgStartLength(ledStrip, ledStart, ledLength);
-//	MapColorWipeVars(indexPos, direction, boundaryBehavior, color1, color2);
-//	ColorWipe();
-//}
-//
-
-void LoadColorWipe(void * fx)
+void LoadColorWipe(LIGHT_FX_T * fx)
 {
 	MapLEDStrip(((LIGHT_FX_T *)fx)->p_LEDStrip, ((LIGHT_FX_T *)fx)->NumLEDs);
 
@@ -490,21 +502,6 @@ void LoadColorWipe(void * fx)
 	Color2 						= ((FX_COLOR_WIPE_VARS_T *)((LIGHT_FX_T *)fx)->p_Vars)->Color2;
 }
 
-void LightFX_InitFXColorWipe(LIGHT_FX_T * fx, FX_COLOR_WIPE_VARS_T * vars, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t startingIndex, bool startingDirection, bool boundaryBehavior, CRGB color1, CRGB color2)
-{
-	fx->Pattern 	= ColorWipe;
-	fx->LoadFX 	= LoadColorWipe;
-	fx->p_LEDStrip 	= &ledStrip[ledStart];
-	fx->NumLEDs 	= ledLength;
-	fx->p_Vars	 	= vars;
-
-	((FX_COLOR_WIPE_VARS_T *)(fx->p_Vars))->Index				= startingIndex;
-	((FX_COLOR_WIPE_VARS_T *)(fx->p_Vars))->Direction 			= startingDirection;
-	((FX_COLOR_WIPE_VARS_T *)(fx->p_Vars))->BoundaryBehavior 	= boundaryBehavior;
-	((FX_COLOR_WIPE_VARS_T *)(fx->p_Vars))->Color1 				= color1;
-	((FX_COLOR_WIPE_VARS_T *)(fx->p_Vars))->Color2 				= color2;
-}
-
 void LightFX_SetFXColorWipe(LIGHT_FX_T * fx, uint32_t startingIndex, bool startingDirection, bool boundaryBehavior, CRGB color1, CRGB color2)
 {
 	((FX_COLOR_WIPE_VARS_T *)(fx->p_Vars))->Index				= startingIndex;
@@ -513,6 +510,19 @@ void LightFX_SetFXColorWipe(LIGHT_FX_T * fx, uint32_t startingIndex, bool starti
 	((FX_COLOR_WIPE_VARS_T *)(fx->p_Vars))->Color1 				= color1;
 	((FX_COLOR_WIPE_VARS_T *)(fx->p_Vars))->Color2 				= color2;
 }
+
+void LightFX_InitFXColorWipe(LIGHT_FX_T * fx, FX_COLOR_WIPE_VARS_T * vars, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t startingIndex, bool startingDirection, bool boundaryBehavior, CRGB color1, CRGB color2)
+{
+	fx->Pattern 	= ColorWipe;
+	fx->LoadFX 		= LoadColorWipe;
+	fx->p_LEDStrip 	= &ledStrip[ledStart];
+	fx->NumLEDs 	= ledLength;
+	fx->p_Vars	 	= vars;
+
+	LightFX_SetFXColorWipe(fx, startingIndex, startingDirection, boundaryBehavior, color1, color2);
+}
+
+
 
 
 /******************************************************************************/
@@ -537,21 +547,7 @@ void Blink()
 	}
 }
 
-//void inline MapBlinkVars(bool * direction, CRGB color1, CRGB color2)
-//{
-//	p_Direction = direction;
-//	Color1 = color1;
-//	Color2 = color2;
-//}
-
-//void LightFX_ProcBlink(CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, bool * direction, CRGB color1, CRGB color2)
-//{
-//	MapLEDStripArgStartLength(ledStrip, ledStart, ledLength);
-//	MapBlinkVars(direction, color1, color2);
-//	Blink();
-//}
-
-void LoadBlink(void * fx)
+void LoadBlink(LIGHT_FX_T * fx)
 {
 	MapLEDStrip(((LIGHT_FX_T *)fx)->p_LEDStrip, ((LIGHT_FX_T *)fx)->NumLEDs);
 
@@ -597,21 +593,7 @@ void PaletteWipe()
 	HelperIndexStep(p_IndexPos, p_Direction, (FASTLED_PALLETTE_MAX + 1)/Steps, 0, FASTLED_PALLETTE_MAX, BoundaryBehavior);
 }
 
-//void inline MapPaletteWipeVars(uint16_t cycleSteps, CRGBPalette16 * palette, uint8_t visibleSpectrum)
-//{
-//	Steps = cycleSteps;
-//	p_Palette = palette;
-//	PALETTE_WIPE_SPECTURM = visibleSpectrum; //255 is 100% of palette spectrum
-//}
-
-//void LightFX_ProcPaletteWipe(CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint16_t cycleSteps, CRGBPalette16 * palette, uint8_t visibleSpectrum)
-//{
-//	MapLEDStripArgStartLength(ledStrip, ledStart, ledLength);
-//	MapPaletteWipeVars(cycleSteps, palette, visibleSpectrum);
-//	PaletteWipe();
-//}
-
-void LoadPaletteWipe(void * fx)
+void LoadPaletteWipe(LIGHT_FX_T * fx)
 {
 	MapLEDStrip(((LIGHT_FX_T *)fx)->p_LEDStrip, ((LIGHT_FX_T *)fx)->NumLEDs);
 
@@ -626,13 +608,13 @@ void LoadPaletteWipe(void * fx)
 void LightFX_InitFXPaletteWipe(LIGHT_FX_T * fx, FX_PALETTE_WIPE_VARS_T * vars, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t startingIndex, bool startingDirection, uint16_t stepsPerCycle, bool boundaryBehavior, const CRGBPalette16 * palette, uint8_t visibleSpectrum)
 {
 	fx->Pattern 	= PaletteWipe;
-	fx->LoadFX 	= LoadPaletteWipe;
+	fx->LoadFX 		= LoadPaletteWipe;
 	fx->p_LEDStrip 	= &ledStrip[ledStart];
 	fx->NumLEDs 	= ledLength;
 	fx->p_Vars 		= vars;
 
 	vars->Index 				= startingIndex;
-	vars->Direction 			= startingDirection;
+	vars->Direction 			= !startingDirection;
 	vars->Steps					= stepsPerCycle;
 	vars->BoundaryBehavior		= boundaryBehavior;
 	vars->p_Palette				= palette;
@@ -673,7 +655,7 @@ void PaletteFader()
 	HelperIndexStep(p_IndexPos, p_Direction, FASTLED_PALLETTE_MAX/Steps, 0, FASTLED_PALLETTE_MAX, BoundaryBehavior);
 }
 
-void LoadPaletteFader(void * fx)
+void LoadPaletteFader(LIGHT_FX_T * fx)
 {
 	MapLEDStrip(((LIGHT_FX_T *)fx)->p_LEDStrip, ((LIGHT_FX_T *)fx)->NumLEDs);
 
@@ -795,7 +777,7 @@ void Fire2012()
     }
 }
 
-void LoadFire2012(void * fx)
+void LoadFire2012(LIGHT_FX_T * fx)
 {
 	MapLEDStrip(((LIGHT_FX_T *)fx)->p_LEDStrip, ((LIGHT_FX_T *)fx)->NumLEDs);
 
@@ -964,7 +946,7 @@ void Fire2012WithPalette()
     }
 }
 
-void LoadFire2012WithPalette(void * fx)
+void LoadFire2012WithPalette(LIGHT_FX_T * fx)
 {
 	MapLEDStrip(((LIGHT_FX_T *)fx)->p_LEDStrip, ((LIGHT_FX_T *)fx)->NumLEDs);
 
@@ -1048,7 +1030,7 @@ void BladeScroll()
 		p_LEDStrip[n].g = ((Color1.g * (BLADE_SCROLL_TIP_LENGTH - (n -*p_FloatPos))) + (Color2.g * (n - *p_FloatPos))) / BLADE_SCROLL_TIP_LENGTH;
 		p_LEDStrip[n].b = ((Color1.b * (BLADE_SCROLL_TIP_LENGTH - (n -*p_FloatPos))) + (Color2.b * (n - *p_FloatPos))) / BLADE_SCROLL_TIP_LENGTH;
 	}
-	for (; n < NumLEDs; n++) // past tip is off or color 2
+	for (; n < NumLEDs; n++) // past tip is off or color2
 		p_LEDStrip[n] = Color2;
 
 	HelperPosStepHardBound(p_FloatPos, p_Direction, (float)(NumLEDs + BLADE_SCROLL_TIP_LENGTH) / Steps, 0.0f, NumLEDs + BLADE_SCROLL_TIP_LENGTH);
@@ -1070,7 +1052,7 @@ void LoadBladeScroll(LIGHT_FX_T * fx)
 void LightFX_InitBladeScroll(LIGHT_FX_T * fx, FX_BLADE_SCROLL_VARS_T * vars, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, float pos, bool direction, uint16_t steps, bool boundaryBehavior, CRGB color1, CRGB color2, uint16_t tipLength)
 {
 	fx->Pattern 	= BladeScroll;
-	fx->LoadFX 		= (void (*)(void *))LoadBladeScroll;
+	fx->LoadFX 		= LoadBladeScroll;
 	fx->p_LEDStrip 	= &ledStrip[ledStart];
 	fx->NumLEDs 	= ledLength;
 	fx->p_Vars	 	= vars;
@@ -1105,13 +1087,113 @@ void LightFX_SetBladeScrollTime(LIGHT_FX_T * fx, uint32_t scrollTimeMs, uint16_t
 	((FX_BLADE_SCROLL_VARS_T *)fx->p_Vars)->Steps = scrollTimeMs*tickPerSecond/1000;
 }
 
+/******************************************************************************/
+/*!
+ * @name Scanner
+ * @brief
+ */
+/******************************************************************************/
+//CRGB ScannerColor = {255,0,0};
+//uint8_t ScannerTrailLength = NumLEDs/2;
+//bool 	ScannerLoop = 1;
+#define SCANNER_TRAIL_FADE 	FloatSpecial
 
-/*-----------------------------------------------------------------------------
-  Common LightFX Init
- *----------------------------------------------------------------------------*/
-// Usually the FX position on the LED strip doesnt need to change
-void LightFX_InitFXMap(LIGHT_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength)
+void Scanner()
 {
-	fx->p_LEDStrip = &ledStrip[ledStart];
-	fx->NumLEDs = ledLength;
+	for (uint8_t i = 0; i < NumLEDs; i++)
+	{
+		if (i == *p_IndexPos)
+			p_LEDStrip[i] = Color1;
+		else
+		{
+			//p_LEDStrip[i].r = p_LEDStrip[i].r/pow(256, 1.0/ScannerTrailLength);
+			p_LEDStrip[i].r = p_LEDStrip[i].r/SCANNER_TRAIL_FADE;
+			p_LEDStrip[i].g = p_LEDStrip[i].g/SCANNER_TRAIL_FADE;
+			p_LEDStrip[i].b = p_LEDStrip[i].b/SCANNER_TRAIL_FADE;
+		}
+	}
+
+	HelperIndexStep(p_IndexPos, p_Direction, 1, 0, NumLEDs, BoundaryBehavior);
 }
+
+void LoadScanner(LIGHT_FX_T * fx)
+{
+	MapLEDStrip(fx->p_LEDStrip, fx->NumLEDs);
+
+	p_IndexPos 			= &((FX_SCANNER_VARS_T *)fx->p_Vars)->Index;
+	p_Direction 		= &((FX_SCANNER_VARS_T *)fx->p_Vars)->Direction;
+	BoundaryBehavior 	= ((FX_SCANNER_VARS_T *)fx->p_Vars)->BoundaryBehavior;
+	Color1 				= ((FX_SCANNER_VARS_T *)fx->p_Vars)->Color1;
+	SCANNER_TRAIL_FADE	= ((FX_SCANNER_VARS_T *)fx->p_Vars)->TrailLength;
+}
+
+void LightFX_InitFXScanner(LIGHT_FX_T * fx, FX_SCANNER_VARS_T * vars, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t startingIndex, bool startingDirection, bool boundaryBehavior, CRGB color, uint16_t trailLength)
+{
+	fx->Pattern 	= Scanner;
+	fx->LoadFX 		= LoadScanner;
+	fx->p_LEDStrip 	= &ledStrip[ledStart];
+	fx->NumLEDs 	= ledLength;
+	fx->p_Vars	 	= vars;
+
+	((FX_SCANNER_VARS_T *)(fx->p_Vars))->Index				= startingIndex;
+	((FX_SCANNER_VARS_T *)(fx->p_Vars))->Direction 			= startingDirection;
+	((FX_SCANNER_VARS_T *)(fx->p_Vars))->BoundaryBehavior 	= boundaryBehavior;
+	((FX_SCANNER_VARS_T *)(fx->p_Vars))->Color1 			= color;
+	((FX_SCANNER_VARS_T *)(fx->p_Vars))->TrailLength 		= pow(256, 1.0/trailLength); // actually save calculated value
+}
+
+/******************************************************************************/
+/*!
+ * @name Scanner
+ * @brief
+ */
+/******************************************************************************/
+void ScannerWithPalette()
+{
+	static uint8_t paletteIndex = 0;
+	paletteIndex++;
+	//HelperIndexStep(&paletteIndex, p_Direction, FASTLED_PALLETTE_MAX/Steps, 0, FASTLED_PALLETTE_MAX, 0);
+
+	for (uint8_t i = 0; i < NumLEDs; i++)
+	{
+		if (i == *p_IndexPos)
+			p_LEDStrip[i] =  ColorFromPalette(*p_Palette, paletteIndex);
+		else
+		{
+			//p_LEDStrip[i].r = p_LEDStrip[i].r/pow(256, 1.0/ScannerTrailLength);
+			p_LEDStrip[i].r = p_LEDStrip[i].r/SCANNER_TRAIL_FADE;
+			p_LEDStrip[i].g = p_LEDStrip[i].g/SCANNER_TRAIL_FADE;
+			p_LEDStrip[i].b = p_LEDStrip[i].b/SCANNER_TRAIL_FADE;
+		}
+	}
+
+	HelperIndexStep(p_IndexPos, p_Direction, 1, 0, NumLEDs, BoundaryBehavior);
+}
+
+void LoadScannerWithPalette(LIGHT_FX_T * fx)
+{
+	MapLEDStrip(fx->p_LEDStrip, fx->NumLEDs);
+
+	p_IndexPos 			= &((FX_SCANNER_WITH_PALETTE_VARS_T *)fx->p_Vars)->Index;
+	p_Direction 		= &((FX_SCANNER_WITH_PALETTE_VARS_T *)fx->p_Vars)->Direction;
+	BoundaryBehavior 	= ((FX_SCANNER_WITH_PALETTE_VARS_T *)fx->p_Vars)->BoundaryBehavior;
+	p_Palette			= ((FX_SCANNER_WITH_PALETTE_VARS_T *)fx->p_Vars)->p_Palette;
+	SCANNER_TRAIL_FADE	= ((FX_SCANNER_WITH_PALETTE_VARS_T *)fx->p_Vars)->TrailFadeFactor;
+}
+
+void LightFX_InitFXScannerWithPalette(LIGHT_FX_T * fx, FX_SCANNER_WITH_PALETTE_VARS_T * vars, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t startingIndex, bool startingDirection, bool boundaryBehavior, const CRGBPalette16 * palette, uint16_t trailLength)
+{
+	fx->Pattern 	= ScannerWithPalette;
+	fx->LoadFX 		= LoadScannerWithPalette;
+	fx->p_LEDStrip 	= &ledStrip[ledStart];
+	fx->NumLEDs 	= ledLength;
+	fx->p_Vars	 	= vars;
+
+	((FX_SCANNER_WITH_PALETTE_VARS_T *)(fx->p_Vars))->Index				= startingIndex;
+	((FX_SCANNER_WITH_PALETTE_VARS_T *)(fx->p_Vars))->Direction 		= startingDirection;
+	((FX_SCANNER_WITH_PALETTE_VARS_T *)(fx->p_Vars))->BoundaryBehavior 	= boundaryBehavior;
+	((FX_SCANNER_WITH_PALETTE_VARS_T *)(fx->p_Vars))->p_Palette 		= palette;
+	((FX_SCANNER_WITH_PALETTE_VARS_T *)(fx->p_Vars))->TrailFadeFactor 	= pow(256, 1.0/trailLength); // actually save calculated value
+}
+
+

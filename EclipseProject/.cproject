@@ -56,10 +56,9 @@
 								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.include.paths.1817670146" name="Include paths (-I)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.include.paths" useByScannerDiscovery="true" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;C:\Program Files (x86)\Arduino\hardware\tools\arm\arm-none-eabi\include&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/teensy3}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Source/LiteFXOS}&quot;"/>
 								</option>
 								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.defs.869480502" name="Defined symbols (-D)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.c.compiler.defs" useByScannerDiscovery="true" valueType="definedSymbols">
-									<listOptionValue builtIn="false" value="F_CPU=48000000"/>
+									<listOptionValue builtIn="false" value="F_CPU=72000000"/>
 									<listOptionValue builtIn="false" value="USB_SERIAL"/>
 									<listOptionValue builtIn="false" value="LAYOUT_US_ENGLISH"/>
 									<listOptionValue builtIn="false" value="TEENSYDUINO=140"/>
@@ -79,6 +78,7 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/Audio}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/Bounce2}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/EEPROM}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/WS2812Serial}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/FastLED}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/SD}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/Snooze}&quot;"/>
@@ -86,21 +86,25 @@
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/Wire}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/Adafruit_BluefruitLE_nRF51-master}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/SparkFun_LSM6DS3_Arduino_Library-master}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/minIni-master/dev}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/SerialFlash}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/SD/utility}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/Audio/utility}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/minIni-master}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/minIni-master/dev}&quot;"/>
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Source/LiteFXOS}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/EnchantOS/Source/LiteFXOS/examples}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/Adafruit_Pixie-master}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/SoftwareSerial}&quot;"/>
+									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/OneButton-master}&quot;"/>
 								</option>
 								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.cpp.compiler.defs.1435830628" name="Defined symbols (-D)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.cpp.compiler.defs" useByScannerDiscovery="true" valueType="definedSymbols">
-									<listOptionValue builtIn="false" value="F_CPU=48000000"/>
+									<listOptionValue builtIn="false" value="F_CPU=72000000"/>
 									<listOptionValue builtIn="false" value="USB_SERIAL"/>
 									<listOptionValue builtIn="false" value="LAYOUT_US_ENGLISH"/>
 									<listOptionValue builtIn="false" value="ARDUINO=10805"/>
 									<listOptionValue builtIn="false" value="TEENSYDUINO=140"/>
 									<listOptionValue builtIn="false" value="__MK20DX256__"/>
 									<listOptionValue builtIn="false" value="USE_TEENSY3_OPTIMIZED_CODE"/>
+									<listOptionValue builtIn="false" value="USE_WS2812SERIAL"/>
 								</option>
 								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.cpp.compiler.noexceptions.1697367065" name="Do not use exceptions (-fno-exceptions)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.cpp.compiler.noexceptions" useByScannerDiscovery="true" value="true" valueType="boolean"/>
 								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.cpp.compiler.nortti.1804709477" name="Do not use RTTI (-fno-rtti)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.cpp.compiler.nortti" useByScannerDiscovery="true" value="true" valueType="boolean"/>
@@ -143,79 +147,8 @@
 							</tool>
 						</toolChain>
 					</folderInfo>
-					<folderInfo id="ilg.gnuarmeclipse.managedbuild.cross.config.elf.debug.956829481.1124886720" name="/" resourcePath="Source">
-						<toolChain id="ilg.gnuarmeclipse.managedbuild.cross.toolchain.elf.debug.49031302" name="Cross ARM GCC" superClass="ilg.gnuarmeclipse.managedbuild.cross.toolchain.elf.debug" unusedChildren="">
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.optimization.level.1048985207.546817493" name="Optimization Level" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.optimization.level.1048985207"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.optimization.messagelength.1961730551.1869535303" name="Message length (-fmessage-length=0)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.optimization.messagelength.1961730551"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.optimization.signedchar.2046537740.1812803645" name="'char' is signed (-fsigned-char)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.optimization.signedchar.2046537740"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.optimization.functionsections.273239573.4403055" name="Function sections (-ffunction-sections)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.optimization.functionsections.273239573"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.optimization.datasections.206575336.1260030230" name="Data sections (-fdata-sections)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.optimization.datasections.206575336"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.debugging.level.1650703516.182627294" name="Debug level" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.debugging.level.1650703516"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.debugging.format.755689329.1974061874" name="Debug format" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.debugging.format.755689329"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.toolchain.name.221271537.1774584292" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.toolchain.name.221271537"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.architecture.1200810433.1847419918" name="Architecture" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.architecture.1200810433"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.arm.target.family.1298778795.2092718241" name="ARM family" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.arm.target.family.1298778795"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.arm.target.instructionset.197964361.535200801" name="Instruction set" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.arm.target.instructionset.197964361"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.command.prefix.640992625.1561216597" name="Prefix" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.command.prefix.640992625"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.command.c.1181316173.2127270527" name="C compiler" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.command.c.1181316173"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.command.cpp.29393269.901773544" name="C++ compiler" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.command.cpp.29393269"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.command.ar.964643189.1097014394" name="Archiver" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.command.ar.964643189"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.command.objcopy.1679578697.867889961" name="Hex/Bin converter" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.command.objcopy.1679578697"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.command.objdump.1542916596.767824271" name="Listing generator" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.command.objdump.1542916596"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.command.size.860061273.333045290" name="Size command" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.command.size.860061273"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.command.make.1762445883.707614357" name="Build command" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.command.make.1762445883"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.command.rm.4949757.696292571" name="Remove command" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.command.rm.4949757"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.addtools.createflash.433335713.1299225395" name="Create flash image" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.addtools.createflash.433335713"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.addtools.printsize.672609218.1160528360" name="Print size" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.addtools.printsize.672609218"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.optimization.spconstant.2135135714.1575158566" name="Single precision constants (-fsingle-precision-constant)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.optimization.spconstant.2135135714"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.arm.target.fpu.unit.319346025.1745214164" name="FPU Type" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.arm.target.fpu.unit.319346025"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.arm.target.fpu.abi.1226844195.627212239" name="Float ABI" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.arm.target.fpu.abi.1226844195"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.warnings.allwarn.735470396.524863827" name="Enable all common warnings (-Wall)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.warnings.allwarn.735470396"/>
-							<option id="ilg.gnuarmeclipse.managedbuild.cross.option.addtools.createlisting.314812049" name="Create extended listing" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.addtools.createlisting"/>
-							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="ilg.gnuarmeclipse.managedbuild.cross.targetPlatform" isAbstract="false" osList="all" superClass="ilg.gnuarmeclipse.managedbuild.cross.targetPlatform"/>
-							<tool id="ilg.gnuarmeclipse.managedbuild.cross.tool.assembler.2101156887" name="Cross ARM GNU Assembler" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.assembler.2082298496">
-								<inputType id="ilg.gnuarmeclipse.managedbuild.cross.tool.assembler.input.435114037" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.assembler.input"/>
-							</tool>
-							<tool id="ilg.gnuarmeclipse.managedbuild.cross.tool.c.compiler.319484290" name="Cross ARM GNU C Compiler" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.c.compiler.207036361">
-								<inputType id="ilg.gnuarmeclipse.managedbuild.cross.tool.c.compiler.input.1300715698" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.c.compiler.input"/>
-							</tool>
-							<tool id="ilg.gnuarmeclipse.managedbuild.cross.tool.cpp.compiler.440409406" name="Cross ARM GNU C++ Compiler" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.cpp.compiler.1516727234">
-								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.cpp.compiler.include.paths.1688245675" name="Include paths (-I)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.cpp.compiler.include.paths" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;C:\Program Files (x86)\Arduino\hardware\tools\arm\arm-none-eabi\include&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Source}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/teensy3}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/Audio}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/Bounce2}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/EEPROM}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/FastLED}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/SD}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/Snooze}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/SPI}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/Wire}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/Adafruit_BluefruitLE_nRF51-master}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/SparkFun_LSM6DS3_Arduino_Library-master}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/minIni-master/dev}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/SerialFlash}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/SD/utility}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Libraries/Audio/utility}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Source/LiteFXOS}&quot;"/>
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/${ProjName}/Source/Boards}&quot;"/>
-								</option>
-								<inputType id="ilg.gnuarmeclipse.managedbuild.cross.tool.cpp.compiler.input.533796983" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.cpp.compiler.input"/>
-							</tool>
-							<tool id="ilg.gnuarmeclipse.managedbuild.cross.tool.c.linker.1273221965" name="Cross ARM GNU C Linker" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.c.linker.810222924">
-								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.c.linker.nostdlibs.810114195" name="No startup or default libs (-nostdlib)" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.c.linker.nostdlibs" value="false" valueType="boolean"/>
-								<option id="ilg.gnuarmeclipse.managedbuild.cross.option.c.linker.other.747771892" name="Other linker flags" superClass="ilg.gnuarmeclipse.managedbuild.cross.option.c.linker.other" value="-lstdc++" valueType="string"/>
-							</tool>
-							<tool id="ilg.gnuarmeclipse.managedbuild.cross.tool.cpp.linker.1374128669" name="Cross ARM GNU C++ Linker" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.cpp.linker.266810665"/>
-							<tool id="ilg.gnuarmeclipse.managedbuild.cross.tool.archiver.651587486" name="Cross ARM GNU Archiver" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.archiver.1372386002"/>
-							<tool id="ilg.gnuarmeclipse.managedbuild.cross.tool.createflash.312807422" name="Cross ARM GNU Create Flash Image" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.createflash.1741935533"/>
-							<tool id="ilg.gnuarmeclipse.managedbuild.cross.tool.createlisting.1783110999" name="Cross ARM GNU Create Listing" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.createlisting.1516913503"/>
-							<tool id="ilg.gnuarmeclipse.managedbuild.cross.tool.printsize.1540020991" name="Cross ARM GNU Print Size" superClass="ilg.gnuarmeclipse.managedbuild.cross.tool.printsize.1952690802"/>
-						</toolChain>
-					</folderInfo>
 					<sourceEntries>
-						<entry excluding="Source/LiteFXOS/examples|Source/LiteFXOS/examples/Demo/Demo.cpp|Source/Examples/Lightsaber/Config.cpp|Libraries/inih-master|Libraries/minIni-master/dev/test.c|Libraries/SdFat-master|Libraries/NXPMotionSense/OrientationVisualiser|Libraries/**/extras|Source/Examples/Lightsaber/Smoothswing.cpp|Libraries/**/examples|Source/Examples/Lightsaber|Source/Examples/LawGiver|Libraries/minIni-master/dev/test2.cc|Source/Exclude|Source/LiteFXOS/Exclude|Source/Examples/Lightsaber/SaberFXbk.cpp|Source/Examples/Lightsaber/SaberFX.cpp" flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name=""/>
+						<entry excluding="Source/Pixie/Wearable.cpp|Source/examples|Source/examples/Lightsaber|Source/Lightsaber/BasicTest.cpp|Libraries/NXPMotionSense|Libraries/inih-master|Libraries/minIni-master/dev/test.c|Libraries/SdFat-master|Libraries/NXPMotionSense/OrientationVisualiser|Source/LiteFXOS/examples|Libraries/**/extras|Libraries/**/examples|Libraries/inih-master/tests|Libraries/minIni-master/dev/test2.cc|Source/Exclude|Source/LiteFXOS/Exclude|Libraries/inih-master/cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>
@@ -298,7 +231,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
-						<entry excluding="Source/LiteFXOS/examples|Source/LiteFXOS/examples/Demo/Demo.cpp|Source/Examples/Lightsaber/Config.cpp|Source/main.c|Libraries/SdFat-master|minIni-master/dev/test.c|Source/Examples/Examples/Kyengen.cpp|Audio/examples|Source/Examples/Lightsaber/Smoothswing.cpp|Source/MenuWrapper.cpp|Source/LiteFXOS/Examples|Source/LiteFXOS/Demo/Kyengen.cpp|Source/LiteFXOS/examples/Demo1.cpp|Source/LiteFXOS/LightFXWrapper.c|Source/LiteFXOS/Demo/Demo.cpp|FastLED/examples|Source/Examples/Demo/Kyengen.cpp|inih-master/examples|Source/LiteFXOS/Exclude|Source/main_Wearable.cpp|Source/Examples/Lightsaber/SaberFX.cpp|Source/mainbk.cpp|Source/Examples/Wearable|SD/examples|Libraries/inih-master|SerialFlash/examples|Libraries/NXPMotionSense/OrientationVisualiser|EnchantOS/Examples/UserCustom|Source/Examples/UserCustom|NXPMotionSense/examples|Source/Examples/Examples/Demo.cpp|inih-master/extra|Source/LiteFXOS/LightFXbk.cpp|Source/LiteFXOS/LightFX2.cpp|Snooze/examples|Source/LiteFXOS/Examples/Simple.cpp|Source/LiteFXOS/LightFXSequences.cpp|Source/LiteFXOS/ColorFloat.cpp|Examples/Lightsaber|EEPROM/examples|teensy3/main.cpp|Libraries/minIni-master/dev/test.c|Audio/extras|Adafruit_BluefruitLE_nRF51-master/examples|blinky|inih-master/tests|Examples/Wearable|FastLED-3.1.3/examples|Wire/examples|Source/LiteFXOS/LightFXTable.c|Examples/UserCustom|Source/Exclude|dev/test2.cc|Source/LiteFXOS/examples/ReactiveWearable.cpp|Source/Examples/Lightsaber/SaberFXbk.cpp|NXPMotionSense/OrientationVisualiser|EnchantOS/Examples/Wearable|SparkFun_LSM6DS3_Arduino_Library-master/examples|SPI/examples|Source/Examples/Lightsaber|Source/Examples/LawGiver|Source/SoundFXWrapper.cpp|EnchantOS/Examples/Lightsaber|Source/LiteFXOS/Examples/Wearable|Libraries/minIni-master/dev/test2.cc|Source/Fire.c|dev/test.c|minIni-master/dev/test2.cc|Bounce2/examples|Source/Examples/Demo/Demo.cpp|inih-master/cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+						<entry excluding="Source/Pixie/Wearable.cpp|Source/examples|Source/examples/Lightsaber|Source/Lightsaber/BasicTest.cpp|Libraries/NXPMotionSense|Libraries/inih-master|Source/Examples/Lightsaber/Config.cpp|Source/main.c|Libraries/SdFat-master|minIni-master/dev/test.c|Source/Examples/Examples/Kyengen.cpp|Audio/examples|Source/Examples/Lightsaber/Smoothswing.cpp|Source/MenuWrapper.cpp|Source/LiteFXOS/Examples|Source/LiteFXOS/Demo/Kyengen.cpp|Source/LiteFXOS/examples/Demo1.cpp|Source/LiteFXOS/LightFXWrapper.c|Source/LiteFXOS/Demo/Demo.cpp|FastLED/examples|Source/Examples/Demo/Kyengen.cpp|inih-master/examples|Source/LiteFXOS/Exclude|Source/main_Wearable.cpp|Source/Examples/Lightsaber/SaberFX.cpp|Source/mainbk.cpp|Libraries/inih-master/cpp|Source/Examples/Wearable|SD/examples|SerialFlash/examples|Libraries/NXPMotionSense/OrientationVisualiser|EnchantOS/Examples/UserCustom|Source/Examples/UserCustom|NXPMotionSense/examples|Source/Examples/Examples/Demo.cpp|inih-master/extra|Source/LiteFXOS/LightFXbk.cpp|Source/LiteFXOS/LightFX2.cpp|Snooze/examples|Source/LiteFXOS/Examples/Simple.cpp|Source/LiteFXOS/LightFXSequences.cpp|Source/LiteFXOS/ColorFloat.cpp|Examples/Lightsaber|EEPROM/examples|teensy3/main.cpp|Libraries/minIni-master/dev/test.c|Audio/extras|Adafruit_BluefruitLE_nRF51-master/examples|blinky|inih-master/tests|Examples/Wearable|Libraries/inih-master/tests|FastLED-3.1.3/examples|Wire/examples|Source/LiteFXOS/LightFXTable.c|Examples/UserCustom|Source/Exclude|dev/test2.cc|Source/LiteFXOS/examples/ReactiveWearable.cpp|Source/Examples/Lightsaber/SaberFXbk.cpp|NXPMotionSense/OrientationVisualiser|EnchantOS/Examples/Wearable|Source/LiteFXOS/examples/Demo/Demo.cpp|SparkFun_LSM6DS3_Arduino_Library-master/examples|SPI/examples|Source/LiteFXOS/examples|Source/Examples/LawGiver|Source/SoundFXWrapper.cpp|EnchantOS/Examples/Lightsaber|Source/LiteFXOS/Examples/Wearable|Libraries/minIni-master/dev/test2.cc|Source/Fire.c|dev/test.c|minIni-master/dev/test2.cc|Bounce2/examples|Source/Examples/Demo/Demo.cpp|inih-master/cpp" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 					</sourceEntries>
 				</configuration>
 			</storageModule>

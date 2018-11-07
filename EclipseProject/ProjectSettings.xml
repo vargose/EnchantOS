@@ -7,7 +7,6 @@
 <language name="C Source File">
 <includepath>C:\Program Files (x86)\Arduino\hardware\tools\arm\arm-none-eabi\include</includepath>
 <includepath workspace_path="true">/${ProjName}/Libraries/teensy3</includepath>
-<includepath workspace_path="true">/${ProjName}/Source/LiteFXOS</includepath>
 
 </language>
 <language name="C++ Source File">
@@ -24,11 +23,75 @@
 <includepath workspace_path="true">/${ProjName}/Libraries/Wire</includepath>
 <includepath workspace_path="true">/${ProjName}/Libraries/Adafruit_BluefruitLE_nRF51-master</includepath>
 <includepath workspace_path="true">/${ProjName}/Libraries/SparkFun_LSM6DS3_Arduino_Library-master</includepath>
-<includepath workspace_path="true">/${ProjName}/Libraries/minIni-master/dev</includepath>
 <includepath workspace_path="true">/${ProjName}/Libraries/SerialFlash</includepath>
 <includepath workspace_path="true">/${ProjName}/Libraries/SD/utility</includepath>
 <includepath workspace_path="true">/${ProjName}/Libraries/Audio/utility</includepath>
+<includepath workspace_path="true">/${ProjName}/Libraries/minIni-master</includepath>
 <includepath workspace_path="true">/${ProjName}/Source/LiteFXOS</includepath>
+<includepath workspace_path="true">/${ProjName}/Libraries/WS2812Serial</includepath>
+<includepath workspace_path="true">/${ProjName}/Libraries/minIni-master/dev</includepath>
+
+</language>
+<language name="Object File">
+
+</language>
+</section>
+<section name="org.eclipse.cdt.internal.ui.wizards.settingswizards.Macros">
+<language name="Assembly Source File">
+<macro>
+<name>ARDUINO</name><value>10805</value>
+</macro>
+
+</language>
+<language name="C Source File">
+<macro>
+<name>F_CPU</name><value>48000000</value>
+</macro>
+<macro>
+<name>USB_SERIAL</name><value/>
+</macro>
+<macro>
+<name>LAYOUT_US_ENGLISH</name><value/>
+</macro>
+<macro>
+<name>TEENSYDUINO</name><value>140</value>
+</macro>
+<macro>
+<name>ARDUINO</name><value>10805</value>
+</macro>
+<macro>
+<name>__MK20DX256__</name><value/>
+</macro>
+<macro>
+<name>USE_TEENSY3_OPTIMIZED_CODE</name><value/>
+</macro>
+
+</language>
+<language name="C++ Source File">
+<macro>
+<name>F_CPU</name><value>48000000</value>
+</macro>
+<macro>
+<name>USB_SERIAL</name><value/>
+</macro>
+<macro>
+<name>LAYOUT_US_ENGLISH</name><value/>
+</macro>
+<macro>
+<name>ARDUINO</name><value>10805</value>
+</macro>
+<macro>
+<name>TEENSYDUINO</name><value>140</value>
+</macro>
+<macro>
+<name>__MK20DX256__</name><value/>
+</macro>
+<macro>
+<name>USE_TEENSY3_OPTIMIZED_CODE</name><value/>
+</macro>
+<macro>
+<name>USE_WS2812SERIAL</name><value/>
+</macro>
 
 </language>
 <language name="Object File">

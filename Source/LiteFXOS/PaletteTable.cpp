@@ -23,6 +23,7 @@
     @brief Palette selection table.
 */
 /**************************************************************************/
+#include "WS2812Serial.h"
 #include "FastLED.h"
 
 #include "PaletteTable.h"

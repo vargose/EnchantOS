@@ -27,6 +27,7 @@
 #include <stdbool.h>
 #include <math.h>
 
+#include "WS2812Serial.h"
 #include "FastLED.h"
 
 #include "PaletteTable.h"
@@ -35,16 +36,28 @@ extern "C" {
 #include "OS.h"
 }
 #include "LightFX.h"
+#include "VisualizerFX.h"
 #include "LiteFX.h"
 
 bool LiteFX_ProcThread(LITE_FX_THREAD_T * thread)
 {
 	LiteFXOS_SetTimerCounter(millis());
-	if (LiteFXOS_ProcThread(&thread->Thread)) 	return 1;
-	else										return 0;
+	if (LiteFXOS_ProcThread(&thread->Thread))
+		return 1;
+	else
+		return 0;
 };
 
-void LiteFX_Start(LITE_FX_THREAD_T * thread, LITE_FX_T * fx, void(*onComplete)(void))
+bool LiteFX_ProcThread(LITE_FX_THREAD_T * thread, uint32_t currentTime)
+{
+	LiteFXOS_SetTimerCounter(currentTime);
+	if (LiteFXOS_ProcThread(&thread->Thread))
+		return 1;
+	else
+		return 0;
+};
+
+void LiteFX_Start(LITE_FX_T * fx, LITE_FX_THREAD_T * thread, void(*onComplete)(void))
 {
 	 //check if FX has been initialized
 	if(fx->LightFX.Pattern == 0) 	return;
@@ -53,33 +66,51 @@ void LiteFX_Start(LITE_FX_THREAD_T * thread, LITE_FX_T * fx, void(*onComplete)(v
 	if(fx->LightFX.p_Vars == 0) 	return;
 	if(fx->LightFX.NumLEDs == 0) 	return;
 
-	fx->p_ThreadHandle = thread; // Keep track of thread the fx is executing for speed changes later.
+	if (thread)	fx->p_ThreadHandle = thread; // Keep track of thread the fx is executing for speed changes later.
+	else if (fx->p_ThreadHandle == 0) 	return;
 
-	fx->OnComplete = onComplete;
+	if (onComplete)		thread->Thread.OnComplete = onComplete; //use oncomplete argument if set
+	else				thread->Thread.OnComplete = fx->OnComplete; // else use oncomplete set when fx init
 
 	if (fx->Ticks == 0)		// Ticks == 0 means it is a cycle FX, run repeatedly
 	{
 		if (fx->Freq == 0) 	// Freq == 0 means it is a solid pattern
 		{
-			LiteFXOS_SetThreadStop(&thread->Thread);
 			if (fx->p_Color1Handle) LightFX_SetSolid(fx->LightFX.p_LEDStrip, 0, fx->LightFX.NumLEDs, *fx->p_Color1Handle);
-			FastLED.show();
+			LiteFXOS_StartThreadMomentaryArgTicksFreq(&thread->Thread, &fx->LightFX, (void (*)(void*))fx->LightFX.LoadFX, fx->LightFX.Pattern, 1, 1, 0); //actually tick it once, so Proc returns true once to update LEDs
 		}
 		else
 		{
-			LiteFXOS_StartThreadCycleArgFreq(&thread->Thread, &fx->LightFX, fx->LightFX.LoadFX, fx->LightFX.Pattern, fx->Freq);
+			LiteFXOS_StartThreadCycleArgFreq(&thread->Thread, &fx->LightFX, (void (*)(void*))fx->LightFX.LoadFX, fx->LightFX.Pattern, fx->Freq);
 		}
 	}
 	else // Ticks > 0 means it is a Momentary FX, run for number of ticks
 	{
-		if (!fx->SameStartOptOut)
+		if (!fx->NoIndexReset)
 		{
 			if (fx->p_IndexHandle) 		*fx->p_IndexHandle 		= fx->InitialIndex;			// Start LiteFX from initial settings
 			if (fx->p_DirectionHandle) 	*fx->p_DirectionHandle 	= fx->InitialDirection;
 		}
-		LiteFXOS_StartThreadMomentaryArgTicksFreq(&thread->Thread, &fx->LightFX, fx->LightFX.LoadFX, fx->LightFX.Pattern, fx->Ticks, fx->Freq, fx->OnComplete);
+		LiteFXOS_StartThreadMomentaryArgTicksFreq(&thread->Thread, &fx->LightFX, (void (*)(void*))fx->LightFX.LoadFX, fx->LightFX.Pattern, fx->Ticks, fx->Freq, fx->OnComplete);
 	}
 }
+
+void LiteFX_Start(LITE_FX_THREAD_T * thread, LITE_FX_T * fx, void(*onComplete)(void))
+{
+	LiteFX_Start(fx, thread, onComplete);
+}
+
+
+
+//void LiteFX_StartVisualizer(LITE_FX_T * fx, LITE_FX_THREAD_T * thread)
+//{
+//	if(fx->VisualizerFX == 0) 	return;
+//
+//	if (thread)	fx->p_ThreadHandle = thread;
+//	else if (fx->p_ThreadHandle == 0) 	return;
+//
+//	LiteFXOS_StartThreadCycleArgFreq(&thread->Thread, 0, 0, fx->VisualizerFX, fx->Freq);
+//}
 
 /*-----------------------------------------------------------------------------
   Patterns
@@ -295,8 +326,12 @@ void LiteFX_SetPaletteFader(LITE_FX_T * fx, uint32_t startingIndex, bool startin
  * 		Solid color is handled by LiteFX only, there is no LightFX counterpart
  */
 /******************************************************************************/
-inline static void NotRunPattern(){}
-inline static void NotRunLoad(void *){}
+inline static void Pattern()
+{
+//	if (fx->p_Color1Handle) LightFX_SetSolid(fx->LightFX.p_LEDStrip, 0, fx->LightFX.NumLEDs, *fx->p_Color1Handle);
+}
+
+inline static void Load(LIGHT_FX_T *){}
 
 void LiteFX_InitPaletteSolid(LITE_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, const CRGBPalette16 * palette)
 {
@@ -316,48 +351,37 @@ void LiteFX_InitPaletteSolid(LITE_FX_T * fx, CRGB * ledStrip, uint16_t ledStart,
 
 	LightFX_InitFXMap(&fx->LightFX, ledStrip, ledStart, ledLength);
 	// Set so LiteFX_Start knows the FX has been initialized.
-	fx->LightFX.Pattern = NotRunPattern;
-	fx->LightFX.LoadFX = NotRunLoad;
+	fx->LightFX.Pattern = Pattern;
+	fx->LightFX.LoadFX = Load;
 	fx->LightFX.p_Vars =  &fx->SolidColorVars;
 
 	LiteFX_AttachInterface(fx, &LIGHT_FX_INTERFACE_PALETTE_COLOR);
 }
 
-//void LiteFX_SetPaletteSolid(LITE_FX_T * fx, const CRGBPalette16 * palette)
+//void LiteFX_SetPaletteSolidPalette(LITE_FX_T * fx, const CRGBPalette16 * palette)
 //{
 //	*fx->p_PaletteHandle		=  palette;
 //}
 
-void LiteFX_NextPaletteColor(LITE_FX_T * fx)
+void LiteFX_NextPaletteSolidColor(LITE_FX_T * fx)
 {
-	//change index handle to PaletteIndexHandle
-	if (fx->p_Color1Handle && fx->p_PaletteHandle && fx->p_IndexHandle)
+	if (fx->p_Color1Handle && fx->p_PaletteHandle && fx->p_IndexHandle && fx->p_ThreadHandle)
 	{
 		*fx->p_IndexHandle = (*fx->p_IndexHandle + 256/16) % 256;
 		*fx->p_Color1Handle = ColorFromPalette(**fx->p_PaletteHandle, *fx->p_IndexHandle);
-	}
-
-	if (fx->Freq == 0) // recolor LEDs for solid
-	{
-		//LiteFX_Start(LITE_FX_THREAD_T * thread, LITE_FX_T * fx)
 		LightFX_SetSolid(fx->LightFX.p_LEDStrip, 0, fx->LightFX.NumLEDs, *fx->p_Color1Handle);
-		FastLED.show();
+		LiteFXOS_StartThreadMomentaryArgTicksFreq(&fx->p_ThreadHandle->Thread, &fx->LightFX, (void (*)(void*))fx->LightFX.LoadFX, fx->LightFX.Pattern, 1, 1, 0); //actually tick it once, so Proc returns true once to update LEDs
 	}
 }
 
-void LiteFX_PreviousPaletteColor(LITE_FX_T * fx)
+void LiteFX_PreviousPaletteSolidColor(LITE_FX_T * fx)
 {
-	if (fx->p_Color1Handle && fx->p_PaletteHandle && fx->p_IndexHandle)
+	if (fx->p_Color1Handle && fx->p_PaletteHandle && fx->p_IndexHandle && fx->p_ThreadHandle)
 	{
 		*fx->p_IndexHandle = (*fx->p_IndexHandle - 256/16) % 256;
 		*fx->p_Color1Handle = ColorFromPalette(**fx->p_PaletteHandle, *fx->p_IndexHandle);
-	}
-
-	if (fx->Freq == 0) // recolor LEDs for solid
-	{
-		//LiteFX_Start(LITE_FX_THREAD_T * thread, LITE_FX_T * fx)
 		LightFX_SetSolid(fx->LightFX.p_LEDStrip, 0, fx->LightFX.NumLEDs, *fx->p_Color1Handle);
-		FastLED.show();
+		LiteFXOS_StartThreadMomentaryArgTicksFreq(&fx->p_ThreadHandle->Thread, &fx->LightFX, (void (*)(void*))fx->LightFX.LoadFX, fx->LightFX.Pattern, 1, 1, 0); //actually tick it once, so Proc returns true once to update LEDs
 	}
 }
 
@@ -510,6 +534,49 @@ void LiteFX_SetBladeScrollTime(LITE_FX_T * fx, uint32_t cycleTimeMs, uint16_t ti
 	fx->Ticks 			= fx->BladeScrollVars.Steps + 1;
 }
 
+/******************************************************************************/
+/*!
+ * @name ScannerWithPalette
+ * @brief
+ */
+/******************************************************************************/
+void LiteFX_InitScannerWithPalette(LITE_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t startingIndex, bool startingDirection, bool boundaryBehavior, const CRGBPalette16 * palette, uint16_t trailLength, uint32_t ticks, uint8_t ticksPerSecond, void(*onComplete)(void))
+{
+	fx->p_IndexHandle 		= &fx->ScannerWithPaletteVars.Index;
+	fx->p_DirectionHandle 	= &fx->ScannerWithPaletteVars.Direction;
+	fx->p_PaletteHandle		= &fx->ScannerWithPaletteVars.p_Palette;
+
+	fx->Ticks 				= ticks;
+	fx->Freq 				= ticksPerSecond;
+	fx->OnComplete 			= onComplete;
+	fx->InitialIndex 		= startingIndex;
+	fx->InitialDirection 	= startingDirection;
+
+	LightFX_InitFXScannerWithPalette(&fx->LightFX, &fx->ScannerWithPaletteVars, ledStrip, ledStart, ledLength, startingIndex, startingDirection, boundaryBehavior, palette, trailLength);
+}
+
+void LiteFX_SetScannerWithPalette(LITE_FX_T * fx, uint32_t startingIndex, bool startingDirection, bool boundaryBehavior, CRGB color1, const CRGBPalette16 * palette, uint16_t trailLength, uint32_t ticks, uint8_t ticksPerSecond, void(*onComplete)(void))
+{
+
+}
+
+///******************************************************************************/
+///*!
+// * @name Visualizer
+// * @brief
+// */
+///******************************************************************************/
+//void LiteFX_InitVisualizer(LITE_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, const CRGBPalette16 * palette)
+//{
+//	//fx->VisualizerFX		= Visualizer_Pulse;
+//
+//	//fx->Ticks 				= 0;
+//	fx->Freq 				= 30;
+//
+//	LightFX_InitFXVisualizer(ledStrip, ledStart, ledLength, palette);
+//}
+
+
 /*-----------------------------------------------------------------------------
 
  *----------------------------------------------------------------------------*/
@@ -537,9 +604,9 @@ void LiteFX_SetBladeScrollTime(LITE_FX_T * fx, uint32_t cycleTimeMs, uint16_t ti
 //{
 //}
 
-void LiteFX_SetContinous(LITE_FX_T * fx)
+void LiteFX_SetNoIndexReset(LITE_FX_T * fx)
 {
-	fx->SameStartOptOut		= true;
+	fx->NoIndexReset		= true;
 }
 
 void LiteFX_SetIndex(LITE_FX_T * fx, uint32_t index)
@@ -567,6 +634,43 @@ void LiteFX_SetPalette(LITE_FX_T * fx, const CRGBPalette16 * palette)
 	*fx->p_PaletteHandle		= palette;
 }
 
+//change to palette index handle to work with non solid patterns
+//void LiteFX_NextPaletteColor(LITE_FX_T * fx, *index)
+//{
+// static index,
+//  if index use index else use static index
+//	//change index handle to PaletteIndexHandle
+//	if (fx->p_Color1Handle && fx->p_PaletteHandle && fx->p_IndexHandle)
+//	{
+//		*fx->p_IndexHandle = (*fx->p_IndexHandle + 256/16) % 256;
+//		*fx->p_Color1Handle = ColorFromPalette(**fx->p_PaletteHandle, *fx->p_IndexHandle);
+//	}
+//
+//	if (fx->Freq == 0) // recolor LEDs for solid
+//	{
+//		LiteFX_Start(fx->p_ThreadHandle, fx, 0);
+//		//LightFX_SetSolid(fx->LightFX.p_LEDStrip, 0, fx->LightFX.NumLEDs, *fx->p_Color1Handle);
+//		//if (fx->p_Color1Handle) LightFX_SetSolid(fx->LightFX.p_LEDStrip, 0, fx->LightFX.NumLEDs, *fx->p_Color1Handle);
+//		//LiteFXOS_StartThreadMomentaryArgTicksFreq(&fx->thread->Thread, &fx->LightFX, fx->LightFX.LoadFX, fx->LightFX.Pattern, 1, 1, 0); //actually tick it once, so Proc returns true once to update LEDs
+//	}
+//}
+//
+//void LiteFX_PreviousPaletteColor(LITE_FX_T * fx)
+//{
+//	if (fx->p_Color1Handle && fx->p_PaletteHandle && fx->p_IndexHandle)
+//	{
+//		*fx->p_IndexHandle = (*fx->p_IndexHandle - 256/16) % 256;
+//		*fx->p_Color1Handle = ColorFromPalette(**fx->p_PaletteHandle, *fx->p_IndexHandle);
+//	}
+//
+//	if (fx->Freq == 0) // recolor LEDs for solid
+//	{
+//		LiteFX_Start(fx->p_ThreadHandle, fx, 0);
+//		//LightFX_SetSolid(fx->LightFX.p_LEDStrip, 0, fx->LightFX.NumLEDs, *fx->p_Color1Handle);
+//		//if (fx->p_Color1Handle) LightFX_SetSolid(fx->LightFX.p_LEDStrip, 0, fx->LightFX.NumLEDs, *fx->p_Color1Handle);
+//		//LiteFXOS_StartThreadMomentaryArgTicksFreq(&fx->thread->Thread, &fx->LightFX, fx->LightFX.LoadFX, fx->LightFX.Pattern, 1, 1, 0); //actually tick it once, so Proc returns true once to update LEDs
+//	}
+//}
 
 /*-----------------------------------------------------------------------------
   Palette Table
@@ -694,92 +798,15 @@ LITE_FX_T * LiteFXTable_GetPrevious(LITE_FX_TABLE_T * table)
 	return table->p_LiteFXArray[table->TableIndex];
 }
 
+LITE_FX_T * LiteFXTable_GetFXIndex(LITE_FX_TABLE_T * table, uint8_t index)
+{
+	return table->p_LiteFXArray[index];
+}
+
 /*-----------------------------------------------------------------------------
   Defaults
  *----------------------------------------------------------------------------*/
 #ifndef NO_LITE_FX_DEFAULTS
-
-//Call this function before using preset defaults, inits using some predefined values
-//One buffer is shared between FX. Each FX using a buffer must be assigned a new buffer if they are to be used simultaneously.
-void LiteFX_InitDefault(CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, CRGB * ledStripBuffer)
-{
-	//Used by table
-	LiteFX_InitPaletteWipe(&LiteFX_DefaultPaletteWipe, ledStrip, ledStart, ledLength, 0, true, 120, false, PaletteTable_GetPalette(&PaletteTable_Default), 255*2/3, 0, 60, 0);
-	LiteFX_AttachInterface(&LiteFX_DefaultPaletteWipe, &LIGHT_FX_INTERFACE_PALETTE);
-	LiteFX_AttachTickRate(&LiteFX_DefaultPaletteWipe, &LIGHT_FX_TICK_RATE_60);
-	LiteFX_AttachPaletteTable(&LiteFX_DefaultPaletteWipe, &PaletteTable_Default);
-
-	LiteFX_InitPaletteFader(&LiteFX_DefaultPaletteFader, ledStrip, ledStart, ledLength, 0, true, 120, false, PaletteTable_GetPalette(&PaletteTable_Default), 0, 60, 0);
-	LiteFX_AttachInterface(&LiteFX_DefaultPaletteFader, &LIGHT_FX_INTERFACE_SPEED);
-	LiteFX_AttachTickRate(&LiteFX_DefaultPaletteFader, &LIGHT_FX_TICK_RATE_60);
-	LiteFX_AttachPaletteTable(&LiteFX_DefaultPaletteFader, &PaletteTable_Default);
-
-	LiteFX_InitPaletteSolid(&LiteFX_DefaultPaletteSolid, ledStrip, ledStart, ledLength, PaletteTable_GetPalette(&PaletteTable_Default));
-	LiteFX_AttachInterface(&LiteFX_DefaultPaletteSolid, &LIGHT_FX_INTERFACE_PALETTE_COLOR);
-
-	LiteFX_InitFire2012(&LiteFX_DefaultFire, ledStrip, ledStart, ledLength, (uint8_t *)ledStripBuffer, 0, 60,  0);
-	LiteFX_AttachInterface(&LiteFX_DefaultFire, &LIGHT_FX_INTERFACE_FIRE_RESET);
-
-	LiteFX_InitFire2012WithPalette(&LiteFX_DefaultFireWithPalette, ledStrip, ledStart, ledLength, PaletteTable_GetPalette(&LiteFX_DefaultFirePaletteTable), false, (uint8_t *)ledStripBuffer, 0, 60, 0);
-	LiteFX_AttachPaletteTable(&LiteFX_DefaultFireWithPalette, &LiteFX_DefaultFirePaletteTable);
-	LiteFX_AttachInterface(&LiteFX_DefaultFireWithPalette, &LIGHT_FX_INTERFACE_PALETTE);
-
-	LiteFX_InitFire2012WithPalette(&LiteFX_DefaultFireWithDynamicPalette, ledStrip, ledStart, ledLength, 0, true, (uint8_t *)ledStripBuffer, 0, 60, 0);
-	LiteFX_AttachInterface(&LiteFX_DefaultFireWithDynamicPalette, &LIGHT_FX_INTERFACE_FIRE_RESET);
-
-	//commonly used
-	LiteFX_InitColorFaderStrip(&LiteFX_DefaultFlash, ledStrip, ledStart, ledLength, 0, true, 12, 12, true, ledStripBuffer, CRGB::White, 25, 240, 0);
-}
-
-/*-----------------------------------------------------------------------------
-  LiteFX Preset Defaults
- *----------------------------------------------------------------------------*/
-LITE_FX_T LiteFX_DefaultPaletteSolid;
-LITE_FX_T LiteFX_DefaultPaletteWipe;
-LITE_FX_T LiteFX_DefaultPaletteFader;
-
-LITE_FX_T LiteFX_DefaultFire;
-LITE_FX_T LiteFX_DefaultFireWithPalette;
-LITE_FX_T LiteFX_DefaultFireWithDynamicPalette;
-
-LITE_FX_T LiteFX_DefaultStrobe;
-LITE_FX_T LiteFX_DefaultCylon;
-LITE_FX_T LiteFX_DefaultSineWipe;
-
-LITE_FX_T LiteFX_DefaultRainbowWithGlitter;
-LITE_FX_T LiteFX_DefaultConfetti;
-LITE_FX_T LiteFX_DefaultBPM;
-LITE_FX_T LiteFX_DefaultJuggle;
-
-//LITE_FX_T LiteFX_DefaultPaletteCylon;
-//LITE_FX_T LiteFX_DefaultPaletteSineWipe;
-//LITE_FX_T LiteFX_DefaultPaletteStrobe;
-//
-//LITE_FX_T LiteFX_DefaultTheaterChase;
-//
-LITE_FX_T LiteFX_DefaultFlash;
-//LITE_FX_T LiteFX_DefaultFlicker;
-
-/*-----------------------------------------------------------------------------
-  Palette Table for Fire2012
- *----------------------------------------------------------------------------*/
-const CRGBPalette16 FIRE_PALETTES_DEFAULT[] =
-{
-	//HeatColors_p,
-	CRGBPalette16( CRGB::Black, CRGB::Blue, CRGB::Aqua, CRGB::White),
-	CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::White),
-	CRGBPalette16( CRGB::Black, CRGB::White),
-};
-
-PALETTE_TABLE_T LiteFX_DefaultFirePaletteTable =
-{
-	.p_Palettes = &FIRE_PALETTES_DEFAULT[0],
-	.TableSize = sizeof(FIRE_PALETTES_DEFAULT)/sizeof(CRGBPalette16),
-	.TableIndex = 0,
-	.ColorIndex = 0,
-};
-
-
 /*-----------------------------------------------------------------------------
   LightFX Tick Rate Defaults
  *----------------------------------------------------------------------------*/
@@ -850,8 +877,8 @@ LITE_FX_INTERFACE_T LIGHT_FX_INTERFACE_PALETTE =
 
 LITE_FX_INTERFACE_T LIGHT_FX_INTERFACE_PALETTE_COLOR =
 {
-	.Up		= LiteFX_NextPaletteColor,
-	.Down	= LiteFX_PreviousPaletteColor,
+	.Up		= LiteFX_NextPaletteSolidColor,
+	.Down	= LiteFX_PreviousPaletteSolidColor,
 };
 
 LITE_FX_INTERFACE_T LIGHT_FX_INTERFACE_SPEED =
@@ -877,6 +904,88 @@ LITE_FX_INTERFACE_T LIGHT_FX_INTERFACE_FIRE_RESET =
 //	.Up = ,
 //	.Down = ,
 //};
+
+/*-----------------------------------------------------------------------------
+  LiteFX Preset Defaults
+ *----------------------------------------------------------------------------*/
+LITE_FX_T LiteFX_DefaultPaletteSolid;
+LITE_FX_T LiteFX_DefaultPaletteWipe;
+LITE_FX_T LiteFX_DefaultPaletteFader;
+
+LITE_FX_T LiteFX_DefaultFire;
+LITE_FX_T LiteFX_DefaultFireWithPalette;
+LITE_FX_T LiteFX_DefaultFireWithDynamicPalette;
+
+LITE_FX_T LiteFX_DefaultStrobe;
+LITE_FX_T LiteFX_DefaultCylon;
+LITE_FX_T LiteFX_DefaultSineWipe;
+
+LITE_FX_T LiteFX_DefaultRainbowWithGlitter;
+LITE_FX_T LiteFX_DefaultConfetti;
+LITE_FX_T LiteFX_DefaultBPM;
+LITE_FX_T LiteFX_DefaultJuggle;
+
+//LITE_FX_T LiteFX_DefaultPaletteCylon;
+//LITE_FX_T LiteFX_DefaultPaletteSineWipe;
+//LITE_FX_T LiteFX_DefaultPaletteStrobe;
+//
+//LITE_FX_T LiteFX_DefaultTheaterChase;
+//
+LITE_FX_T LiteFX_DefaultFlash;
+//LITE_FX_T LiteFX_DefaultFlicker;
+
+
+/*-----------------------------------------------------------------------------
+  Palette Table for Fire2012
+ *----------------------------------------------------------------------------*/
+const CRGBPalette16 FIRE_PALETTES_DEFAULT[] =
+{
+	//HeatColors_p,
+	CRGBPalette16( CRGB::Black, CRGB::Blue, CRGB::Aqua, CRGB::White),
+	CRGBPalette16( CRGB::Black, CRGB::Red, CRGB::White),
+	CRGBPalette16( CRGB::Black, CRGB::White),
+};
+
+PALETTE_TABLE_T LiteFX_DefaultFirePaletteTable =
+{
+	.p_Palettes = &FIRE_PALETTES_DEFAULT[0],
+	.TableSize = sizeof(FIRE_PALETTES_DEFAULT)/sizeof(CRGBPalette16),
+	.TableIndex = 0,
+	.ColorIndex = 0,
+};
+
+//Call this function before using preset defaults, inits using some predefined values
+//One buffer is shared between FX. Each FX using a buffer must be assigned a new buffer if they are to be used simultaneously.
+void LiteFX_InitDefault(CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, CRGB * ledStripBuffer)
+{
+	//Used by table
+	LiteFX_InitPaletteWipe(&LiteFX_DefaultPaletteWipe, ledStrip, ledStart, ledLength, 0, true, 120, false, PaletteTable_GetPalette(&PaletteTable_Default), 255*2/3, 0, 60, 0);
+	LiteFX_AttachInterface(&LiteFX_DefaultPaletteWipe, &LIGHT_FX_INTERFACE_PALETTE);
+	LiteFX_AttachTickRate(&LiteFX_DefaultPaletteWipe, &LIGHT_FX_TICK_RATE_60);
+	LiteFX_AttachPaletteTable(&LiteFX_DefaultPaletteWipe, &PaletteTable_Default);
+
+	LiteFX_InitPaletteFader(&LiteFX_DefaultPaletteFader, ledStrip, ledStart, ledLength, 0, true, 120, false, PaletteTable_GetPalette(&PaletteTable_Default), 0, 60, 0);
+	LiteFX_AttachInterface(&LiteFX_DefaultPaletteFader, &LIGHT_FX_INTERFACE_SPEED);
+	LiteFX_AttachTickRate(&LiteFX_DefaultPaletteFader, &LIGHT_FX_TICK_RATE_60);
+	LiteFX_AttachPaletteTable(&LiteFX_DefaultPaletteFader, &PaletteTable_Default);
+
+	LiteFX_InitPaletteSolid(&LiteFX_DefaultPaletteSolid, ledStrip, ledStart, ledLength, PaletteTable_GetPalette(&PaletteTable_Default));
+	LiteFX_AttachInterface(&LiteFX_DefaultPaletteSolid, &LIGHT_FX_INTERFACE_PALETTE_COLOR);
+
+	LiteFX_InitFire2012(&LiteFX_DefaultFire, ledStrip, ledStart, ledLength, (uint8_t *)ledStripBuffer, 0, 60,  0);
+	LiteFX_AttachInterface(&LiteFX_DefaultFire, &LIGHT_FX_INTERFACE_FIRE_RESET);
+
+	LiteFX_InitFire2012WithPalette(&LiteFX_DefaultFireWithPalette, ledStrip, ledStart, ledLength, PaletteTable_GetPalette(&LiteFX_DefaultFirePaletteTable), false, (uint8_t *)ledStripBuffer, 0, 60, 0);
+	LiteFX_AttachPaletteTable(&LiteFX_DefaultFireWithPalette, &LiteFX_DefaultFirePaletteTable);
+	LiteFX_AttachInterface(&LiteFX_DefaultFireWithPalette, &LIGHT_FX_INTERFACE_PALETTE);
+
+	LiteFX_InitFire2012WithPalette(&LiteFX_DefaultFireWithDynamicPalette, ledStrip, ledStart, ledLength, 0, true, (uint8_t *)ledStripBuffer, 0, 60, 0);
+	LiteFX_AttachInterface(&LiteFX_DefaultFireWithDynamicPalette, &LIGHT_FX_INTERFACE_FIRE_RESET);
+
+	//commonly used
+	LiteFX_InitColorFaderStrip(&LiteFX_DefaultFlash, ledStrip, ledStart, ledLength, 0, true, 12, 12, true, ledStripBuffer, CRGB::White, 25, 240, 0);
+}
+
 
 /*-----------------------------------------------------------------------------
   LiteFX Table
@@ -911,5 +1020,4 @@ LITE_FX_TABLE_T LiteFXTable_Default =
 	.TableSize 		= sizeof(LITE_FX_ARRAY_DEFAULT)/sizeof(LITE_FX_T*),
 	.TableIndex 	= 0,
 };
-
 #endif

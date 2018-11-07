@@ -23,7 +23,6 @@
     @brief For binding groups of sound files. Uses the Teensy Audio Library
 */
 /**************************************************************************/
-
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
@@ -37,32 +36,32 @@
 /*-----------------------------------------------------------------------------
 
  *----------------------------------------------------------------------------*/
-typedef enum
-{
-		WAV1_INPUT_L = 0,
-		WAV1_INPUT_R = 1,
-		WAV2_INPUT_L = 2,
-		WAV2_INPUT_R = 3,
-} SOUND_FX_OUT_CHANNEL_T;
-
 //AudioSynthWaveform	Waveform1;
 
 AudioPlaySdWav		PlayWav1;
 AudioPlaySdWav		PlayWav2;
+AudioPlaySdWav		PlayWav3;
 
-AudioMixer4			SoundFXOut;
-AudioConnection		patchCord1(PlayWav1, 0, SoundFXOut, WAV1_INPUT_L);
-AudioConnection		patchCord2(PlayWav1, 1, SoundFXOut, WAV1_INPUT_R);
-AudioConnection		patchCord3(PlayWav2, 0, SoundFXOut, WAV2_INPUT_L);
-AudioConnection		patchCord4(PlayWav2, 1, SoundFXOut, WAV2_INPUT_R);
+AudioMixer4			MixerWav2Wav3;
+AudioConnection		connect1(PlayWav2, 0, MixerWav2Wav3, PLAY_WAV_2_L);
+AudioConnection		connect2(PlayWav2, 1, MixerWav2Wav3, PLAY_WAV_2_R);
+AudioConnection		connect3(PlayWav3, 0, MixerWav2Wav3, PLAY_WAV_3_L);
+AudioConnection		connect4(PlayWav3, 1, MixerWav2Wav3, PLAY_WAV_3_R);
+
+AudioMixer4			SoundFXMixer;
+AudioConnection		patchCord1(PlayWav1, 0, SoundFXMixer, PLAY_WAV_1_L);
+AudioConnection		patchCord2(PlayWav1, 1, SoundFXMixer, PLAY_WAV_1_R);
+AudioConnection		patchCord3(MixerWav2Wav3, 0, SoundFXMixer, PLAY_WAV_2_WAV_3_MASTER);
+//AudioConnection		patchCord3(PlayWav2, 0, SoundFXMixer, SOUND_FX_CHANNEL_2);
+//AudioConnection		patchCord4(PlayWav2, 1, SoundFXMixer, SOUND_FX_CHANNEL_3);
 
 #ifdef __MK64FX512__
 	AudioOutputAnalogStereo		DAC;
-	AudioConnection				patchCord5(SoundFXOut, 0, DAC, 1);
+	AudioConnection				patchCord5(SoundFXMixer, 0, DAC, 1);
 #endif
 #ifdef __MK20DX256__
 	AudioOutputAnalog			DAC;
-	AudioConnection				patchCord5(SoundFXOut, 0, DAC, 0);
+	AudioConnection				patchCord5(SoundFXMixer, 0, DAC, 0);
 #endif
 
 AudioAnalyzePeak	peak_L;
@@ -72,16 +71,13 @@ AudioConnection		c2(PlayWav1,1,peak_R,0);
 
 AudioAnalyzeRMS		RMS_L;
 AudioAnalyzeRMS		RMS_R;
-AudioConnection		c3(PlayWav2,0,RMS_L,0);
-AudioConnection		c4(PlayWav2,1,RMS_R,0);
+AudioConnection		c3(PlayWav1,0,RMS_L,0);
+AudioConnection		c4(PlayWav1,1,RMS_R,0);
 
-static uint8_t Peak;
-static uint8_t RMS;
+static float Peak;
+static float RMS;
 
 static uint8_t AmpPin;
-
-bool Wav2IsPlaying = 0;
-bool Wav2Changed = 0;
 
 /*-----------------------------------------------------------------------------
 
@@ -105,10 +101,10 @@ void SoundFX_Init(uint8_t pin)
 
 	delay(50);             // time for DAC voltage stable
 
-	SoundFXOut.gain(WAV1_INPUT_L, 0.5);
-	SoundFXOut.gain(WAV1_INPUT_R, 0.5);
-	SoundFXOut.gain(WAV2_INPUT_L, 0);
-	SoundFXOut.gain(WAV2_INPUT_R, 0);
+	SoundFXMixer.gain(PLAY_WAV_1_L, 0.5);
+	SoundFXMixer.gain(PLAY_WAV_1_R, 0.5);
+	SoundFXMixer.gain(PLAY_WAV_2_WAV_3_MASTER, 0);
+	SoundFXMixer.gain(SOUND_FX_CHANNEL_3, 0);
 }
 
 // A SoundFX is a group of sound files binded to one action/event
@@ -123,7 +119,7 @@ void SoundFX_InitFX(SOUND_FX_T * soundFX, char ** filenamesBuffer, uint8_t filen
 	soundFX->FileCountMax = fileCountMax;
 	soundFX->WavCount = 0;
 
-	memset(filenamesBuffer, 0, filenameLenMax*fileCountMax); //need?
+	memset(filenamesBuffer, 0, filenameLenMax*fileCountMax); //in case of switching from sound font with more files.
 }
 
 void SoundFX_AddFile(SOUND_FX_T * soundFX, const char * fileName)
@@ -190,13 +186,46 @@ void SoundFX_InitFXWithDirectory(SOUND_FX_T * soundFX, char ** filenamesBuffer, 
 	SoundFX_AddDirectory(soundFX, dirName);
 }
 
+const char * SoundFX_GetFXFile(SOUND_FX_T * soundFX)
+{
+	return ((char*)soundFX->Filenames + soundFX->WavIndex * soundFX->FilenameLenMax);
+}
+
+const char * SoundFX_GetFXNextFile(SOUND_FX_T * soundFX)
+{
+	if(soundFX->WavIndex < soundFX->WavCount - 1)
+		soundFX->WavIndex++;
+	else
+		soundFX->WavIndex = 0;
+
+	return ((char*)soundFX->Filenames + soundFX->WavIndex * soundFX->FilenameLenMax);
+}
+
+const char * SoundFX_GetFXIndexFile(SOUND_FX_T * soundFX, uint8_t index)
+{
+	//uint8_t index = rand() % soundFX->WavCount;
+
+	return ((char*)soundFX->Filenames + index * soundFX->FilenameLenMax);
+}
+
+bool SoundFX_StoppedPlaying(SOUND_FX_T * soundFX)
+{
+	soundFX->ChangedPlaying = soundFX->IsPlaying ^ soundFX->p_WavPlayer->isPlaying();
+	soundFX->IsPlaying = soundFX->p_WavPlayer->isPlaying();
+
+	if(!soundFX->IsPlaying && soundFX->ChangedPlaying)	return true;
+	else												return false;
+}
+
+bool SoundFX_IsPlaying(SOUND_FX_T * soundFX)
+{
+	return soundFX->p_WavPlayer->isPlaying();
+}
+
 void SoundFX_Reload(void)
 {
 
 }
-
-
-
 
 void SoundFX_Reset(void)
 {
@@ -205,6 +234,7 @@ void SoundFX_Reset(void)
 //	SoundFXOut.gain(SOUND_FX_OUT_INPUT2_L, 0);
 //	SoundFXOut.gain(SOUND_FX_OUT_INPUT2_R, 0);
 }
+
 
 void SoundFX_VolumeUp(void)
 {
@@ -218,36 +248,31 @@ void SoundFX_VolumeDown(void)
 
 void SoundFX_SetVolume(float volume)
 {
-//	SoundFXOut.gain(SOUND_FX_OUT_INPUT1_L, volume);
-//	SoundFXOut.gain(SOUND_FX_OUT_INPUT1_R, volume);
-//	SoundFXOut.gain(SOUND_FX_OUT_INPUT2_L, volume);
-//	SoundFXOut.gain(SOUND_FX_OUT_INPUT2_R, volume);
+//	SoundFXOut.gain(SOUND_FX_OUT_INPUT1_L, *volume);
+//	SoundFXOut.gain(SOUND_FX_OUT_INPUT1_R, *volume);
+//	SoundFXOut.gain(SOUND_FX_OUT_INPUT2_L, *volume);
+//	SoundFXOut.gain(SOUND_FX_OUT_INPUT2_R, *volume);
 }
 
+//bool SoundFX_IsPlaying(void)
+//{
+//	if (PlayWav1.isPlaying() || PlayWav2.isPlaying())
+//		return true;
+//	else
+//		return false;
+//}
 
-void SoundFX_Pause(void)
-{
+//void SoundFX_PollAmpDisable(void)
+//{
+//	if (!PlayWav1.isPlaying() && !PlayWav2.isPlaying())
+//		AmpOff();
+//}
 
-}
-
-bool SoundFX_IsPlaying(void)
-{
-	if (PlayWav1.isPlaying() || PlayWav2.isPlaying())
-		return true;
-	else
-		return false;
-}
-
-void SoundFX_Stop(void)
+void SoundFX_StopAll(void)
 {
 	PlayWav1.stop();
 	PlayWav2.stop();
-}
-
-void SoundFX_PollAmpDisable(void)
-{
-	if (!PlayWav1.isPlaying() && !PlayWav2.isPlaying())
-		AmpOff();
+	PlayWav3.stop();
 }
 
 void SoundFX_PlayFile(const char * filename)
@@ -256,79 +281,18 @@ void SoundFX_PlayFile(const char * filename)
 
 	//Serial.println(filename);
 
-	SoundFXOut.gain(WAV1_INPUT_L, 0.5);
-	SoundFXOut.gain(WAV1_INPUT_R, 0.5);
-	SoundFXOut.gain(WAV2_INPUT_L, 0);
-	SoundFXOut.gain(WAV2_INPUT_R, 0);
+	SoundFXMixer.gain(PLAY_WAV_1_L, 0.5);
+	SoundFXMixer.gain(PLAY_WAV_1_R, 0.5);
+	SoundFXMixer.gain(PLAY_WAV_2_WAV_3_MASTER, 	0);
+	SoundFXMixer.gain(SOUND_FX_CHANNEL_3, 		0);
 	PlayWav1.play(filename);
-}
-
-void SoundFX_PlayFileLayered(const char * filename, bool backgroundForeground)
-{
-	if (filename == 0) return;
-
-	if(PlayWav1.isPlaying() || PlayWav2.isPlaying())
-	{
-		SoundFXOut.gain(WAV1_INPUT_L, 0.1);
-		SoundFXOut.gain(WAV1_INPUT_R, 0.1);
-		SoundFXOut.gain(WAV2_INPUT_L, 0.4);
-		SoundFXOut.gain(WAV2_INPUT_R, 0.4);
-
-		if(backgroundForeground)
-			PlayWav2.play(filename);
-		else
-			PlayWav1.play(filename);
-	}
-	else
-	{
-		if(backgroundForeground)
-		{
-			SoundFXOut.gain(WAV1_INPUT_L, 0);
-			SoundFXOut.gain(WAV1_INPUT_R, 0);
-			SoundFXOut.gain(WAV2_INPUT_L, 0.5);
-			SoundFXOut.gain(WAV2_INPUT_R, 0.5);
-			PlayWav2.play(filename);
-		}
-		else
-		{
-			SoundFXOut.gain(WAV1_INPUT_L, 0.5);
-			SoundFXOut.gain(WAV1_INPUT_R, 0.5);
-			SoundFXOut.gain(WAV2_INPUT_L, 0);
-			SoundFXOut.gain(WAV2_INPUT_R, 0);
-			PlayWav1.play(filename);
-		}
-	}
 }
 
 void SoundFX_PlayFX(SOUND_FX_T * soundFX)
 {
 	SoundFX_PlayFile(((char*)soundFX->Filenames + soundFX->WavIndex * soundFX->FilenameLenMax));
 
-	if(soundFX->WavIndex < soundFX->WavCount - 1)
-		soundFX->WavIndex++;
-	else
-		soundFX->WavIndex = 0;
-}
-
-void SoundFX_PlayFXIndex(SOUND_FX_T * soundFX, uint8_t index)
-{
-	if (index > soundFX->WavCount - 1)
-		index = 0;
-
-	SoundFX_PlayFile(((char*)soundFX->Filenames + index * soundFX->FilenameLenMax));
-}
-
-void SoundFX_PlayFXRandom(SOUND_FX_T * soundFX)
-{
-	uint8_t index =	index = rand() % soundFX->WavCount;
-
-	SoundFX_PlayFile(((char*)soundFX->Filenames + index * soundFX->FilenameLenMax));
-}
-
-// 0 for background
-void SoundFX_PlayFXLayered(SOUND_FX_T * soundFX, bool backgroundOrForeground)
-{
-	SoundFX_PlayFileLayered(((char*)soundFX->Filenames + soundFX->WavIndex * soundFX->FilenameLenMax), backgroundOrForeground);
+	soundFX->p_WavPlayer = &PlayWav1;
 
 	if(soundFX->WavIndex < soundFX->WavCount - 1)
 		soundFX->WavIndex++;
@@ -336,41 +300,6 @@ void SoundFX_PlayFXLayered(SOUND_FX_T * soundFX, bool backgroundOrForeground)
 		soundFX->WavIndex = 0;
 }
 
-void SoundFX_PlayFileLayeredBackgroudLoop(const char * filename)
-{
-	if (!PlayWav1.isPlaying())
-		SoundFX_PlayFileLayered(filename, 0);
-
-	Wav2Changed = Wav2IsPlaying ^ PlayWav2.isPlaying();
-	Wav2IsPlaying = PlayWav2.isPlaying();
-
-	if(!Wav2IsPlaying && Wav2Changed)
-	{
-		SoundFXOut.gain(WAV1_INPUT_L, 0.5);
-		SoundFXOut.gain(WAV1_INPUT_R, 0.5);
-		SoundFXOut.gain(WAV2_INPUT_L, 0);
-		SoundFXOut.gain(WAV2_INPUT_R, 0);
-	}
-}
-
-void SoundFX_PlayFXLayeredBackgroudLoop(SOUND_FX_T * soundFX)
-{
-	if (!PlayWav1.isPlaying())
-		SoundFX_PlayFXLayered(soundFX, 0);
-
-	Wav2Changed = Wav2IsPlaying ^ PlayWav2.isPlaying();
-	Wav2IsPlaying = PlayWav2.isPlaying();
-
-	if(!Wav2IsPlaying && Wav2Changed)
-	{
-		SoundFXOut.gain(WAV1_INPUT_L, 0.5);
-		SoundFXOut.gain(WAV1_INPUT_R, 0.5);
-		SoundFXOut.gain(WAV2_INPUT_L, 0);
-		SoundFXOut.gain(WAV2_INPUT_R, 0);
-	}
-}
-
-// good for music selection
 void SoundFX_PlayNext(SOUND_FX_T * soundFX)
 {
 	if(soundFX->WavIndex < soundFX->WavCount - 1)
@@ -391,22 +320,131 @@ void SoundFX_PlayPrevious(SOUND_FX_T * soundFX)
 	SoundFX_PlayFile(((char*)soundFX->Filenames + soundFX->WavIndex * soundFX->FilenameLenMax));
 }
 
+void SoundFX_PlayFXIndex(SOUND_FX_T * soundFX, uint8_t index)
+{
+	if (index > soundFX->WavCount - 1)
+		index = 0;
+
+	SoundFX_PlayFile(((char*)soundFX->Filenames + index * soundFX->FilenameLenMax));
+}
+
+void SoundFX_PlayFXRandom(SOUND_FX_T * soundFX)
+{
+	uint8_t index = rand() % soundFX->WavCount;
+
+	SoundFX_PlayFile(((char*)soundFX->Filenames + index * soundFX->FilenameLenMax));
+}
+
+
+/*-----------------------------------------------------------------------------
+  Simple Foreground Background Mode
+ *----------------------------------------------------------------------------*/
+#define PLAY_WAV_BACKGROUND PlayWav1
+#define PLAY_WAV_FOREGROUND PlayWav2
+
+// 0 for background, 1 for foreground
+void SoundFX_PlayFileLayered(const char * filename, bool backgroundForeground)
+{
+	if (filename == 0) return;
+
+	PlayWav3.stop();
+
+	MixerWav2Wav3.gain(PLAY_WAV_2_L, .5);
+	MixerWav2Wav3.gain(PLAY_WAV_2_R, .5);
+	MixerWav2Wav3.gain(PLAY_WAV_3_L, 0);
+	MixerWav2Wav3.gain(PLAY_WAV_3_R, 0);
+	SoundFXMixer.gain(SOUND_FX_CHANNEL_3, 0);
+
+	if(PLAY_WAV_BACKGROUND.isPlaying() || PLAY_WAV_FOREGROUND.isPlaying())
+	{
+		SoundFXMixer.gain(PLAY_WAV_1_L, 0.15);
+		SoundFXMixer.gain(PLAY_WAV_1_R, 0.15);
+		SoundFXMixer.gain(PLAY_WAV_2_WAV_3_MASTER, 	0.7);
+
+		if(backgroundForeground)
+			PLAY_WAV_FOREGROUND.play(filename);
+		else
+			PLAY_WAV_BACKGROUND.play(filename);
+	}
+	else
+	{
+		if(backgroundForeground)
+		{
+			SoundFXMixer.gain(PLAY_WAV_1_L, 0);
+			SoundFXMixer.gain(PLAY_WAV_1_R, 0);
+			SoundFXMixer.gain(PLAY_WAV_2_WAV_3_MASTER, 	1);
+			PLAY_WAV_FOREGROUND.play(filename);
+		}
+		else
+		{
+			SoundFXMixer.gain(PLAY_WAV_1_L, 0.35);
+			SoundFXMixer.gain(PLAY_WAV_1_R, 0.35);
+			SoundFXMixer.gain(PLAY_WAV_2_WAV_3_MASTER, 	0);
+			PLAY_WAV_BACKGROUND.play(filename);
+		}
+	}
+}
+
+// 0 for background, 1 for foreground
+void SoundFX_PlayFXLayered(SOUND_FX_T * soundFX, bool backgroundOrForeground)
+{
+	SoundFX_PlayFileLayered(((char*)soundFX->Filenames + soundFX->WavIndex * soundFX->FilenameLenMax), backgroundOrForeground);
+
+	if(soundFX->WavIndex < soundFX->WavCount - 1)
+		soundFX->WavIndex++;
+	else
+		soundFX->WavIndex = 0;
+}
+
+void SoundFX_PlayFileLayeredBackgroudLoop(const char * filename)
+{
+	static bool foregroundWavIsPlaying = 0;
+	static bool foregroundWavChanged = 0;
+
+	// .isPlaying() takes a bit of time after .play() is called to register
+	if (!PLAY_WAV_BACKGROUND.isPlaying()) SoundFX_PlayFileLayered(filename, 0); //play if not playing
+
+	foregroundWavChanged = foregroundWavIsPlaying ^ PLAY_WAV_FOREGROUND.isPlaying();
+	foregroundWavIsPlaying = PLAY_WAV_FOREGROUND.isPlaying();
+
+	if(!foregroundWavIsPlaying && foregroundWavChanged) //foreground stopped playing, set all gain to background
+	{
+		SoundFXMixer.gain(PLAY_WAV_1_L, 0.35);
+		SoundFXMixer.gain(PLAY_WAV_1_R, 0.35);
+		SoundFXMixer.gain(PLAY_WAV_2_WAV_3_MASTER,	0);
+		SoundFXMixer.gain(SOUND_FX_CHANNEL_3, 		0);
+	}
+}
+
+void SoundFX_PlayFXLayeredBackgroudLoop(SOUND_FX_T * soundFX)
+{
+	SoundFX_PlayFileLayeredBackgroudLoop(((char*)soundFX->Filenames + soundFX->WavIndex * soundFX->FilenameLenMax));
+
+	if(soundFX->WavIndex < soundFX->WavCount - 1)
+		soundFX->WavIndex++;
+	else
+		soundFX->WavIndex = 0;
+}
+
 void SoundFX_QueueFile(const char * filename)
 {
 
 }
 
-uint8_t SoundFX_GetPeak()
+float SoundFX_GetPeak()
 {
 	if (PlayWav1.isPlaying())
+	{
+		if (peak_L.available() && peak_R.available())
+			Peak = (peak_L.read() + peak_R.read())/2;
 
-	if (peak_L.available() && peak_R.available())
-		Peak = (peak_L.read() + peak_R.read())/2;
-
-	return Peak;
+		return Peak;
+	}
+	else
+		return 0;
 }
 
-uint8_t SoundFX_GetRMS()
+float SoundFX_GetRMS()
 {
 	if (PlayWav1.isPlaying())
 	{
@@ -415,7 +453,8 @@ uint8_t SoundFX_GetRMS()
 
 		return RMS;
 	}
-	else return 0;
+	else
+		return 0;
 }
 
 void debug_SoundFX_PrintPeak()

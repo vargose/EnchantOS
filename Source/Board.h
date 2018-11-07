@@ -1,6 +1,11 @@
 #ifndef SOURCE_ENCHANTBOARD_H_
 #define SOURCE_ENCHANTBOARD_H_
 
+#define RESTART_ADDR 		0xE000ED0C
+#define RESTART_VAL 		0x5FA0004
+#define READ_RESTART() 		(*(volatile uint32_t *)RESTART_ADDR)
+#define WRITE_RESTART() 	((*(volatile uint32_t *)RESTART_ADDR) = (RESTART_VAL))
+
 #ifdef __MK64FX512__
 	// Use these with the Teensy 3.5 & 3.6 SD card
 	#define SDCARD_CS_PIN    BUILTIN_SDCARD

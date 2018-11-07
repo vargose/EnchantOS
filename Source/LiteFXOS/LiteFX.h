@@ -42,7 +42,11 @@ typedef struct
 struct LiteFX
 {
 	LiteFX(){}
-	LIGHT_FX_T LightFX;
+	union
+	{
+		LIGHT_FX_T LightFX;
+		void (* VisualizerFX)(void);
+	};
 	union
 	{
 		FX_COLOR_FADER_VARS_T 				ColorFaderVars;
@@ -54,6 +58,9 @@ struct LiteFX
 		FX_FIRE2012_VARS_T					Fire2012Vars;
 		FX_FIRE2012_WITH_PALETTE_VARS_T		Fire2012WithPaletteVars;
 		FX_BLADE_SCROLL_VARS_T				BladeScrollVars;
+		FX_SCANNER_VARS_T					ScannerVars;
+		FX_SCANNER_WITH_PALETTE_VARS_T		ScannerWithPaletteVars;
+
 		struct
 		{
 			CRGB Color;
@@ -85,7 +92,7 @@ struct LiteFX
 
 	uint32_t	InitialIndex;		// The initial step in the pattern, the pattern always starts here
 	bool		InitialDirection;	// The initial direction of the pattern
-	bool		SameStartOptOut;	// by default, for momentary FX, use the same initial state every time we start the pattern.
+	bool		NoIndexReset;		// by default, for momentary FX, use the same initial state every time we start the pattern.
 
 	PALETTE_TABLE_T		* p_PaletteTable;
 	LITE_FX_TICK_RATE_T * p_TickRate;
@@ -93,41 +100,13 @@ struct LiteFX
 };
 
 /*-----------------------------------------------------------------------------
-  LiteFX Tick Rate
- *----------------------------------------------------------------------------*/
-struct LiteFXTickRate
-{
-	uint8_t Default;
-	uint8_t Min;
-	uint8_t Max;
-	//uint8_t StepSize;
-	float StepMultiplier;
-};
-
-/*-----------------------------------------------------------------------------
-  LiteFX Interface
- *----------------------------------------------------------------------------*/
-struct LiteFXInterface
-{
-	void (*Up)	(LITE_FX_T * LiteFX); 	//map to speed increase, or special change;
-	void (*Down)(LITE_FX_T * LiteFX);
-};
-
-/*-----------------------------------------------------------------------------
-  LiteFX Table
- *----------------------------------------------------------------------------*/
-typedef struct
-{
-	LITE_FX_T ** p_LiteFXArray;
-	uint8_t TableSize;
-	uint8_t TableIndex;
-} LITE_FX_TABLE_T;
-
-/*-----------------------------------------------------------------------------
 
  *----------------------------------------------------------------------------*/
 bool LiteFX_ProcThread(LITE_FX_THREAD_T * thread);
+bool LiteFX_ProcThread(LITE_FX_THREAD_T * thread, uint32_t currentTime);
+void LiteFX_Start(LITE_FX_T * fx, LITE_FX_THREAD_T * thread, void(*onComplete)(void));
 void LiteFX_Start(LITE_FX_THREAD_T * thread, LITE_FX_T * fx, void(*onComplete)(void));
+void LiteFX_StartVisualizer(LITE_FX_T * fx, LITE_FX_THREAD_T * thread);
 
 void LiteFX_InitColorFader(LITE_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t startingIndex, bool startingDirection, uint16_t transitionSteps, bool boundaryBehavior, CRGB color1, CRGB color2, uint32_t ticks, uint8_t ticksPerSecond, void(*onComplete)(void));
 void LiteFX_SetColorFader(LITE_FX_T * fx, uint16_t startingIndex, bool startingDirection, uint16_t transitionSteps, bool boundaryBehavior, CRGB color1, CRGB color2, uint32_t ticks, uint8_t ticksPerSecond, void(*onComplete)(void));
@@ -150,8 +129,8 @@ void LiteFX_InitPaletteFader(LITE_FX_T * fx, CRGB * ledStrip, uint16_t ledStart,
 void LiteFX_SetPaletteFader(LITE_FX_T * fx, uint32_t startingIndex, bool startingDirection, uint16_t stepsPerCycle, bool boundaryBehavior, const CRGBPalette16 * palette, uint32_t ticks, uint8_t ticksPerSecond, void (*onComplete)(void));
 
 void LiteFX_InitPaletteSolid(LITE_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, const CRGBPalette16 * palette);
-void LiteFX_NextPaletteColor(LITE_FX_T * fx);
-void LiteFX_PreviousPaletteColor(LITE_FX_T * fx);
+void LiteFX_NextPaletteSolidColor(LITE_FX_T * fx);
+void LiteFX_PreviousPaletteSolidColor(LITE_FX_T * fx);
 
 //void LiteFX_InitPaletteTableSolid(LITE_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, PALETTE_TABLE_T * table);
 //void LiteFX_SetPaletteTableSolid(LITE_FX_T * fx, const CRGBPalette16 * palette);
@@ -170,17 +149,22 @@ void LiteFX_InitBladeScroll(LITE_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, 
 void LiteFX_SetBladeScroll(LITE_FX_T * fx, float pos, bool direction, uint16_t steps, CRGB color1, CRGB color2, uint16_t tipLength, uint32_t ticks, uint8_t ticksPerSecond, void(*onComplete)(void));
 void LiteFX_SetBladeScrollTime(LITE_FX_T * fx, uint32_t cycleTimeMs, uint16_t ticksPerSecond);
 
+void LiteFX_InitScannerWithPalette(LITE_FX_T * fx, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t startingIndex, bool startingDirection, bool boundaryBehavior, const CRGBPalette16 * palette, uint16_t trailLength, uint32_t ticks, uint8_t ticksPerSecond, void(*onComplete)(void));
+void LiteFX_SetScannerWithPalette(LITE_FX_T * fx, uint32_t startingIndex, bool startingDirection, bool boundaryBehavior, const CRGBPalette16 * palette, uint16_t trailLength, uint32_t ticks, uint8_t ticksPerSecond, void(*onComplete)(void));
+
 /*-----------------------------------------------------------------------------
 
  *----------------------------------------------------------------------------*/
 //void LiteFX_SetCycle(LITE_FX_T * fx, uint8_t ticksPerSecond);
 //void LiteFX_SetMomentary(LITE_FX_T * fx, uint32_t ticks, uint32_t ticksPerSecond, void (*onComplete)(void));
-void LiteFX_SetContinous(LITE_FX_T * fx);
+void LiteFX_SetNoIndexReset(LITE_FX_T * fx);
 void LiteFX_SetIndex(LITE_FX_T * fx, uint32_t index);
 void LiteFX_SetPos(LITE_FX_T * fx, float pos);
 void LiteFX_SetDirection(LITE_FX_T * fx, bool dir);
 void LiteFX_SetColor(LITE_FX_T * fx, CRGB color);
 void LiteFX_SetPalette(LITE_FX_T * fx, const CRGBPalette16 * palette);
+
+
 
 /*-----------------------------------------------------------------------------
 
@@ -191,14 +175,45 @@ void LiteFX_PreviousPalette(LITE_FX_T * fx);
 void LiteFX_NextPaletteTableColor(LITE_FX_T * fx);
 void LiteFX_PreviousPaletteTableColor(LITE_FX_T * fx);
 
+/*-----------------------------------------------------------------------------
+  LiteFX Tick Rate
+ *----------------------------------------------------------------------------*/
+struct LiteFXTickRate
+{
+	uint8_t Default;
+	uint8_t Min;
+	uint8_t Max;
+	//uint8_t StepSize;
+	float StepMultiplier;
+};
+
 void LiteFX_AttachTickRate(LITE_FX_T * fx, LITE_FX_TICK_RATE_T * rate);
 void LiteFX_SetTickRateDefaultFreq(LITE_FX_T * fx);
 void LiteFX_SetTickRateFaster(LITE_FX_T * fx);
 void LiteFX_SetTickRateSlower(LITE_FX_T * fx);
 
+/*-----------------------------------------------------------------------------
+  LiteFX Interface
+ *----------------------------------------------------------------------------*/
+struct LiteFXInterface
+{
+	void (*Up)	(LITE_FX_T * LiteFX); 	//map to speed increase, or special change;
+	void (*Down)(LITE_FX_T * LiteFX);
+};
+
 void LiteFX_AttachInterface(LITE_FX_T * fx, LITE_FX_INTERFACE_T * interface);
 void LiteFX_DoInterfaceUp(LITE_FX_T * fx);
 void LiteFX_DoInterfaceDown(LITE_FX_T * fx);
+
+/*-----------------------------------------------------------------------------
+  LiteFX Table
+ *----------------------------------------------------------------------------*/
+typedef struct
+{
+	LITE_FX_T ** p_LiteFXArray;
+	uint8_t TableSize;
+	uint8_t TableIndex;
+} LITE_FX_TABLE_T;
 
 void LiteFXTable_InitTable(LITE_FX_TABLE_T * table, LITE_FX_T * fxArray, uint8_t fxCount);
 LITE_FX_T * LiteFXTable_GetFX(LITE_FX_TABLE_T * table);
@@ -209,33 +224,6 @@ LITE_FX_T * LiteFXTable_GetPrevious(LITE_FX_TABLE_T * table);
  Defaults
  *----------------------------------------------------------------------------*/
 #ifndef NO_LITE_FX_DEFAULTS
-
-void LiteFX_InitDefault(CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, CRGB * ledStripBuffer);
-
-extern LITE_FX_T LiteFX_DefaultPaletteWipe;
-extern LITE_FX_T LiteFX_DefaultPaletteFader;
-extern LITE_FX_T LiteFX_DefaultPaletteSolid;
-
-extern LITE_FX_T LiteFX_DefaultFire;
-extern LITE_FX_T LiteFX_DefaultFireWithPalette;
-extern LITE_FX_T LiteFX_DefaultFireWithDynamicPalette;
-
-extern LITE_FX_T LiteFX_DefaultStrobe;
-extern LITE_FX_T LiteFX_DefaultCylon;
-extern LITE_FX_T LiteFX_DefaultSineWipe;
-
-extern LITE_FX_T LiteFX_DefaultRainbowWithGlitter;
-extern LITE_FX_T LiteFX_DefaultConfetti;
-extern LITE_FX_T LiteFX_DefaultBPM;
-extern LITE_FX_T LiteFX_DefaultJuggle;
-
-extern LITE_FX_T LiteFX_DefaultFlash;
-
-
-/*-----------------------------------------------------------------------------
-  Palette Table for Fire2012
- *----------------------------------------------------------------------------*/
-extern PALETTE_TABLE_T LiteFX_DefaultFirePaletteTable;
 
 /*-----------------------------------------------------------------------------
   LiteFX Tick Rate Defaults
@@ -251,10 +239,40 @@ extern LITE_FX_INTERFACE_T LIGHT_FX_INTERFACE_PALETTE;
 extern LITE_FX_INTERFACE_T LIGHT_FX_INTERFACE_PALETTE_COLOR;
 extern LITE_FX_INTERFACE_T LIGHT_FX_INTERFACE_SPEED;
 extern LITE_FX_INTERFACE_T LIGHT_FX_INTERFACE_FIRE_RESET;
+
+/*-----------------------------------------------------------------------------
+  FX Tables
+ *----------------------------------------------------------------------------*/
+//extern LITE_FX_T LiteFX_DefaultPaletteWipe;
+//extern LITE_FX_T LiteFX_DefaultPaletteFader;
+//extern LITE_FX_T LiteFX_DefaultPaletteSolid;
+//
+//extern LITE_FX_T LiteFX_DefaultFire;
+//extern LITE_FX_T LiteFX_DefaultFireWithPalette;
+//extern LITE_FX_T LiteFX_DefaultFireWithDynamicPalette;
+//
+//extern LITE_FX_T LiteFX_DefaultStrobe;
+//extern LITE_FX_T LiteFX_DefaultCylon;
+//extern LITE_FX_T LiteFX_DefaultSineWipe;
+//
+//extern LITE_FX_T LiteFX_DefaultRainbowWithGlitter;
+//extern LITE_FX_T LiteFX_DefaultConfetti;
+//extern LITE_FX_T LiteFX_DefaultBPM;
+//extern LITE_FX_T LiteFX_DefaultJuggle;
+//
+//extern LITE_FX_T LiteFX_DefaultFlash;
+
+void LiteFX_InitDefault(CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, CRGB * ledStripBuffer);
+
 /*-----------------------------------------------------------------------------
   LiteFX Table Default
  *----------------------------------------------------------------------------*/
 extern LITE_FX_TABLE_T LiteFXTable_Default;
+
+/*-----------------------------------------------------------------------------
+  Palette Table for Fire2012
+ *----------------------------------------------------------------------------*/
+//extern PALETTE_TABLE_T LiteFX_DefaultFirePaletteTable;
 
 #endif
 

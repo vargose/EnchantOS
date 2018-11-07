@@ -1,27 +1,18 @@
-/*
- * IMU.h
- *
- *  Created on: Jul 25, 2017
- *      Author: SLi
- */
-
 #ifndef SOURCE_IMU_H_
 #define SOURCE_IMU_H_
 
-#include <stdint.h>
+#include "src/SparkFunLSM6DS3.h"
 
-void IMU_Poll ();
+extern LSM6DS3 IMU;
 
+void IMU_Poll(uint32_t currentTime);
 
 void IMU_SetThresholdImpact(float g);
 void IMU_SetThresholdSwing(float g, float d);
 
-bool IMU_DetectImpact(void);
-bool IMU_DetectSwing(void);
-bool IMU_DetectMovement();
-
-void IMU_SetLockOutDetectTimeSwing(uint16_t ms);
-void IMU_SetLockOutDetectTimeImpact(uint16_t ms);
+bool IMU_DetectImpact(uint32_t currentTime, uint32_t supressTime);
+bool IMU_DetectSwing(uint32_t currentTime, uint32_t supressTime);
+bool IMU_DetectSwingDirectionChange(void);
 
 void IMU_Init();
 

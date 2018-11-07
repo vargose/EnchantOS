@@ -33,7 +33,12 @@
 		<link>
 			<name>Source</name>
 			<type>2</type>
-			<locationURI>ProjectRoot/Source</locationURI>
+			<location>D:/Dropbox/EnchantOS/Source</location>
+		</link>
+		<link>
+			<name>Libraries/Adafruit_Pixie-master</name>
+			<type>2</type>
+			<location>D:/Dropbox/EnchantOS/Libraries/Adafruit_Pixie-master</location>
 		</link>
 		<link>
 			<name>Libraries/Audio</name>
@@ -56,9 +61,9 @@
 			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/FastLED</location>
 		</link>
 		<link>
-			<name>Libraries/NXPMotionSense</name>
+			<name>Libraries/OneButton-master</name>
 			<type>2</type>
-			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/NXPMotionSense</location>
+			<location>D:/Dropbox/EnchantOS/Libraries/OneButton-master</location>
 		</link>
 		<link>
 			<name>Libraries/SD</name>
@@ -79,6 +84,16 @@
 			<name>Libraries/Snooze</name>
 			<type>2</type>
 			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/Snooze</location>
+		</link>
+		<link>
+			<name>Libraries/SoftwareSerial</name>
+			<type>2</type>
+			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/SoftwareSerial</location>
+		</link>
+		<link>
+			<name>Libraries/WS2812Serial</name>
+			<type>2</type>
+			<location>C:/Program Files (x86)/Arduino/hardware/teensy/avr/libraries/WS2812Serial</location>
 		</link>
 		<link>
 			<name>Libraries/Wire</name>

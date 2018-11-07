@@ -24,16 +24,16 @@
 #ifndef SOURCE_LITEFXOS_LIGHTFX_H_
 #define SOURCE_LITEFXOS_LIGHTFX_H_
 
-typedef struct
+typedef struct LightFX
 {
-	void (*Pattern)(void);	//Pattern
-	//refactor this to LightFX type later
-	void (*LoadFX)(void * LightFX); // Function to load itself/context
+	void (*Pattern)(void);	// Pattern
+	//void (*Pattern)(struct LightFX * lightFX);
+	void (*LoadFX)(struct LightFX * lightFX); // Function to load itself/context
 
-	CRGB * p_LEDStrip;	//Mapping
-	uint16_t NumLEDs;	//Mapping
+	CRGB * p_LEDStrip;	// LED Position Mapping
+	uint16_t NumLEDs;	// LED Position Mapping
 
-	void * p_Vars; // Pattern Vars	//Using an aggregation model, rather than inheritance, to allows us to make an uniform array of LightFX
+	void * p_Vars; // Pattern Vars // Using an aggregation model, rather than inheritance, to allows us to make an uniform array of LightFX
 } LIGHT_FX_T;
 
 /******************************************************************************/
@@ -223,5 +223,32 @@ void LightFX_SetBladeScroll(LIGHT_FX_T * fx, float pos, bool direction, uint16_t
 void LightFX_SetBladeScrollTipLength(LIGHT_FX_T * fx, uint16_t len);
 void LightFX_SetBladeScrollTime(LIGHT_FX_T * fx, uint32_t scrollTimeMs, uint16_t tickPerSecond);
 
+typedef struct
+{
+	uint32_t	Index;
+	bool		Direction;
+	bool		BoundaryBehavior;
+	CRGB 		Color1;
+	uint32_t	TrailLength;
+	float		TrailFadeFactor;
+} FX_SCANNER_VARS_T;
+
+void LightFX_InitFXScanner(LIGHT_FX_T * fx, FX_SCANNER_VARS_T * vars, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t startingIndex, bool startingDirection, bool boundaryBehavior, CRGB color, uint16_t trailLength);
+void LightFX_SetFXScanner(LIGHT_FX_T * fx, uint32_t startingIndex, bool startingDirection, bool boundaryBehavior, CRGB color1, uint16_t trailLength);
+void LightFX_SetFXScannerTrailLength(LIGHT_FX_T * fx, uint16_t trailLength);
+
+typedef struct
+{
+	uint32_t	Index;
+	bool		Direction;
+	bool		BoundaryBehavior;
+	const CRGBPalette16 * p_Palette;
+	uint32_t	TrailLength;
+	float		TrailFadeFactor;
+} FX_SCANNER_WITH_PALETTE_VARS_T;
+
+void LightFX_InitFXScannerWithPalette(LIGHT_FX_T * fx, FX_SCANNER_WITH_PALETTE_VARS_T * vars, CRGB * ledStrip, uint16_t ledStart, uint16_t ledLength, uint32_t startingIndex, bool startingDirection, bool boundaryBehavior, const CRGBPalette16 * palette, uint16_t trailLength);
+void LightFX_SetFXScannerWithPalette(LIGHT_FX_T * fx, uint32_t startingIndex, bool startingDirection, bool boundaryBehavior, const CRGBPalette16 * palette, uint16_t trailLength);
+void LightFX_SetFXScannerWithPaletteTrailLength(LIGHT_FX_T * fx, uint16_t trailLength);
 
 #endif /* SOURCE_LITEFXOS_LIGHTFX_H_ */

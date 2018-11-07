@@ -34,11 +34,13 @@
 #include "SPI.h"
 #include "Snooze.h"
 
-extern "C" {
-#include "LiteFXOS/OS.h"
-}
-#include "LiteFXOS/LightFX.h"
-#include "LiteFXOS/LiteFX.h"
+#include "LiteFXOS/LiteFXOS.h"
+
+//extern "C" {
+//#include "LiteFXOS/OS.h"
+//}
+//#include "LiteFXOS/LightFX.h"
+//#include "LiteFXOS/LiteFX.h"
 
 #include "Menu.h"
 #include "SoundFX.h"
@@ -46,6 +48,8 @@ extern "C" {
 #include "IMU.h"
 
 #include "Board.h"
+
+
 
 /*-----------------------------------------------------------------------------
   LED Strip
@@ -86,6 +90,9 @@ LITE_FX_T RainbowFX;
 Bounce ButtonRecognition;
 Bounce ButtonTrigger;
 Bounce ButtonMagazine;
+
+Bounce	SDCardDetect;
+Bounce	ButtonPower;
 
 /*-----------------------------------------------------------------------------
   Sound Files
@@ -137,6 +144,19 @@ extern MENU_T MENU_ARMOR_PIERCING;
 extern MENU_T MENU_DOUBLE_WAMMY;
 extern MENU_T MENU_FLARE;
 extern MENU_T MENU_MUSIC;
+extern MENU_T MENU_POWER_OFF;
+
+/*-----------------------------------------------------------------------------
+  Hibernate
+ *----------------------------------------------------------------------------*/
+SnoozeDigital digital;	// this is the pin wakeup driver
+SnoozeBlock config_teensy3x(digital);	//config for card detect pin
+
+/*-----------------------------------------------------------------------------
+  State Data
+ *----------------------------------------------------------------------------*/
+MENU_T * MenuPowerOn;
+uint32_t TimeOff = 0;
 
 /*-----------------------------------------------------------------------------
   Common Functions
@@ -173,6 +193,8 @@ void NoAmmo()
 void FXBarrelOff(void)
 {
 	LightFX_SetOff(LawGiver, BARREL_START, BARREL_LENGTH);
+	Serial.println("BarrelOff");
+	FastLED.show();
 }
 
 /*-----------------------------------------------------------------------------
@@ -356,7 +378,7 @@ void StartMusicMenu()
 
 void EndMusicMenu()
 {
-	SoundFX_Stop();
+	SoundFX_StopAll();
 	LightFX_SetOff(LawGiver, 0, NUM_LEDS);
 	Menu_StartMenu(&MENU_PRERECOGNITION);
 }
@@ -365,6 +387,35 @@ void NextSong()
 {
 	SoundFX_PlayNext(&SoundFXMusic);
 }
+
+/*-----------------------------------------------------------------------------
+  Power Off Menu
+ *----------------------------------------------------------------------------*/
+static void Hibernate(void)
+{
+	int who;
+
+	MenuPowerOn = Menu_GetMenu(); // return to current menu on power on
+	Menu_StartMenu(&MENU_POWER_OFF);
+
+	FastLED.showColor(0);
+
+	for (int i = 0; i < NUM_LEDS; i++)	LawGiver[i] = 0;
+	FastLED.show();
+
+	SoundFX_StopAll();
+	//SoundFX_PlayFX(&SoundFXPowerOff);
+
+	// go into low power mode
+	BoardOff();
+	who = Snooze.hibernate( config_teensy3x );
+
+	WRITE_RESTART();
+	//delay(50); // delay before trying SD card
+	//Boot();
+	//delay(50); // delay before polling buttons in main loop
+}
+
 
 /*-----------------------------------------------------------------------------
   Menus
@@ -378,6 +429,7 @@ enum FUNCTION_MAP_TRANSLATION
 	BUTTON_FUNCTION_TRIGGER,
 	BUTTON_FUNCTION_MAGAZINE,
 	BUTTON_FUNCTION_MUSIC,
+	BUTTON_FUNCTION_OFF,
 };
 
 MENU_T MENU_PRERECOGNITION =
@@ -391,6 +443,7 @@ MENU_T MENU_PRERECOGNITION =
 		0,					//.FunctionMap[BUTTON_FUNCTION_TRIGGER]
 		0,					//.FunctionMap[BUTTON_FUNCTION_MAGAZINE]
 		StartMusicMenu,		//.FunctionMap[MENU_START_MUSIC]
+		Hibernate,
 	},
 };
 
@@ -405,6 +458,7 @@ MENU_T MENU_RAPID_FIRE =
 		RapidFireTrigger,		//.FunctionMap[BUTTON_FUNCTION_TRIGGER] 	= RapidFireTrigger,
 		Reload,					//.FunctionMap[BUTTON_FUNCTION_MAGAZINE] 	= MagazineCommon,
 		StartMusicMenu,			//.FunctionMap[MENU_START_MUSIC]
+		Hibernate,
 	},
 };
 
@@ -419,6 +473,7 @@ MENU_T MENU_GRENADE =
 		GrenadeTrigger,
 		Reload,
 		StartMusicMenu,
+		Hibernate,
 	},
 };
 
@@ -433,6 +488,7 @@ MENU_T MENU_ARMOR_PIERCING =
 		ArmorPiercingTrigger,
 		Reload,
 		StartMusicMenu,
+		Hibernate,
 	},
 };
 
@@ -447,6 +503,7 @@ MENU_T MENU_DOUBLE_WAMMY =
 		DoubleWammyTrigger,
 		Reload,
 		StartMusicMenu,
+		Hibernate,
 	},
 };
 
@@ -461,6 +518,7 @@ MENU_T MENU_FLARE =
 		FlareTrigger,
 		Reload,
 		StartMusicMenu,
+		Hibernate,
 	},
 };
 
@@ -475,6 +533,22 @@ MENU_T MENU_MUSIC =
 		NextSong,
 		0,
 		EndMusicMenu,
+		Hibernate,
+	},
+};
+
+MENU_T MENU_POWER_OFF =
+{
+	.NextMenu = 0,
+	.PrevMenu = 0,
+	.InitFunction = 0,
+	.FunctionMap =
+	{
+		0,
+		0,
+		0,
+		0,
+		0,
 	},
 };
 
@@ -505,13 +579,23 @@ void setup()
 		Serial.println("Unable to access the SD card");
 	}
 
-	pinMode(13,	 INPUT_PULLUP);
-	pinMode(18,  INPUT_PULLUP);
-	pinMode(19,	 INPUT_PULLUP);
+	pinMode(18,	 INPUT_PULLUP);
+	pinMode(19,  INPUT_PULLUP);
+	pinMode(20,	 INPUT_PULLUP);
 
-	ButtonRecognition	= Bounce(13, 10);  // 10 ms debounce
-	ButtonTrigger		= Bounce(18, 10);  // 10 ms debounce
-	ButtonMagazine		= Bounce(19, 10);  // 10 ms debounce
+	ButtonRecognition	= Bounce(20, 10);  // 10 ms debounce
+	ButtonTrigger		= Bounce(19, 10);  // 10 ms debounce
+	ButtonMagazine		= Bounce(18, 10);  // 10 ms debounce
+
+  	pinMode(SDCARD_DETECT,	 	INPUT_PULLUP);
+  	pinMode(6,					INPUT_PULLUP);
+
+  	SDCardDetect 	= Bounce(SDCARD_DETECT,	 	10);  // 10 ms debounce
+  	ButtonPower 	= Bounce(6,				50);
+
+  	// For hibernate
+    digital.pinMode(SDCARD_DETECT, 		INPUT_PULLUP, FALLING);//pin, mode, type
+    digital.pinMode(6, 					INPUT_PULLUP, FALLING);//pin, mode, type
 
 	//Bluefruit_Init();
 
@@ -561,6 +645,13 @@ void loop()
 	ButtonRecognition.update();
 	ButtonTrigger.update();
 	ButtonMagazine.update();
+
+	SDCardDetect.update();
+	ButtonPower.update();
+
+  	if(SDCardDetect.fell())	{BootUp();}
+  	if(ButtonPower.read())	{Menu_DoFunction(BUTTON_FUNCTION_OFF);}
+
 	if(ButtonRecognition.fell()) 	{Menu_DoFunction(BUTTON_FUNCTION_RECOGNITION);}
 	if(ButtonTrigger.fell()) 		{Menu_DoFunction(BUTTON_FUNCTION_TRIGGER);}
 	if(ButtonMagazine.fell()) 		{Menu_DoFunction(BUTTON_FUNCTION_MAGAZINE);}

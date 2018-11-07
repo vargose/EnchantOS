@@ -1,0 +1,119 @@
+#-----------------------------------------------------------------------------
+# ENCHANT - Light and Sound FX Controller
+# Lightsaber Software 
+# Default Config File V1
+#-----------------------------------------------------------------------------
+# Comments are preceeded by # and are ignored
+#-----------------------------------------------------------------------------
+
+#-----------------------------------------------------------------------------
+# General Settings
+#-----------------------------------------------------------------------------
+[General]
+
+# Boots into Light FX selection mode or Saber Mode
+# Set to 0 to start in Light FX selection mode (most sounds disabled)
+# Set to 1 to start in Saber Mode. 
+Boot_Saber_Menu = 0
+
+# Use hibernate mode when the blade is powered off
+Hibernate_Enable = 1
+
+# Time before hibernating after blade retact in milliseconds. Ignored if Hibernate_Enable = 0
+Hibernate_Delay = 60000
+
+# Enable bluetooth in the software. For details: https://thefirebrandforge.com/lightsaber/bluetooth/
+Bluetooth_Enable = 0
+
+#-----------------------------------------------------------------------------
+# Blade Settings
+#-----------------------------------------------------------------------------
+[Blade]
+
+# Set Numer of LEDs. 256 Max 
+LED_Count = 144
+
+# Blade extend and retract time in milliseconds 
+Scroll_Time = 500
+
+# For a Fading tip during blade scroll. Set to 0 to disable 
+Scroll_Tip_Fade_Length = 24
+
+# Boots with a solid color
+# Set to 0 to use the first animation on boot up (configurable at a later time. this is currently rainbow)
+# Set to 1 to use a solid color on boot up
+Boot_Solid_Color = 0
+
+# Main color used by animation with a dominate color in RGB values.
+# A simple RGB color picker can be found here https://htmlcolorcodes.com/color-picker/
+Main_Color_R = 255
+Main_Color_G = 215
+Main_Color_B = 0
+
+# Flash on clash time in millisecond 
+Flash_Time = 200
+
+# Flash on clash color 
+Flash_Color_R = 255
+Flash_Color_G = 255
+Flash_Color_B = 255
+
+#-----------------------------------------------------------------------------
+# Sound Font Settings
+#-----------------------------------------------------------------------------
+# By default the following font names are used. 
+# These are the root directories for .wav files belonging to that font.
+# 	bank1
+#	bank2
+#	bank3 
+#
+# By default the following Sound FX names are used -
+#	boot 		- Played on boot up and switching into the font
+#	poweron 	- Played on power on
+#	poweroff	- Played power off
+#	hum 		- Played while the saber is idle (in saber mode)
+#	swing 		- Played when a swing is detected (in saber mode)
+#	clash 		- Played when a clash is detected (in saber mode)
+#	blaster 	- Played when the Aux button is pressed (in saber mode)
+#	lockup 		- Played when a lock up is triggered (in saber mode)
+#
+# If Enchant style is selected, these names are used as subdirectories containing .wav files 
+#	e.g bank1/poweron/anyname.wav
+#
+# If Classic style is selected, these names are used as prefixes of the .wav files
+# 	e.g bank1/poweron1.wav
+#-----------------------------------------------------------------------------
+[Sound]
+
+# Font file mapping style. 
+# Set to 0 to select Enchant Style
+# Set to 1 to select Classic Style
+Font1_Classic_Style = 0
+Font2_Classic_Style = 0
+Font3_Classic_Style = 0
+
+# Use custom directory or file names
+Use_Custom_Naming = 0
+
+# Ignored if Use_Custom_Naming is 0
+Font1_Name = bank1
+Font2_Name = bank2
+Font3_Name = bank3
+
+#-----------------------------------------------------------------------------
+# SmoothSwing
+#-----------------------------------------------------------------------------
+# By default the following SmoothSwing names are used -
+#	SwingA
+#	SwingB
+#
+# If Enchant style is selected, these names are used as subdirectories containing .wav files 
+#	e.g bank1/SwingA/anyname.wav
+#	e.g bank1/SwingB/anyname.wav
+#-----------------------------------------------------------------------------
+
+# Enables SmoothSwing
+SmoothSwing_Enable = 1
+
+# Select V1 or V2. Modified verisons of the original algorithm are used. 
+SmoothSwing_Version = 1
