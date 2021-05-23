@@ -1,8 +1,11 @@
 # EnchantOS
 
 Gathered info from 
+
 https://thefirebrandforge.com/shop/enchant-product/
+
 https://thefirebrandforge.com/page/enchant/
+
 https://thefirebrandforge.com/page/lightsaber/
 
 ENCHANT is an extension board, designed to be used in combination with a Teensy 3.2, along with our corresponding software, to perform as a Lights and Sounds controller (aka soundboard), intended for props in general; while having all the features necessary for high quality Lightsaber props in particular. ENCHANT is designed on the premise of taking advantage of RGB LED strips and an intuitive, fun, and powerful Menu system.
